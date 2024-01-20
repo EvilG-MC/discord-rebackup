@@ -83,7 +83,7 @@ export async function fetchVoiceChannelData(channel: VoiceChannel) {
 export async function fetchStageChannelData(channel: StageChannel) {
     return new Promise<VoiceChannelData>(async (resolve) => {
         const channelData: VoiceChannelData = {
-            type: ChannelType.GuildVoice,
+            type: channel.type,
             name: channel.name,
             bitrate: channel.bitrate,
             userLimit: channel.userLimit,
@@ -289,10 +289,7 @@ export async function loadChannel(
                     | ChannelType.AnnouncementThread
                     | ChannelType.PrivateThread
                 >);
-
-                if (channelData.type === ChannelType.GuildStageVoice) {
-                    createOptions.userLimit = 0;
-                };
+                if (channelData.type === ChannelType.GuildStageVoice) createOptions.userLimit = 0;
             }
         } else if (channelData.type === ChannelType.GuildVoice) {
             // Downgrade bitrate

@@ -249,5 +249,6 @@ export default {
     fetch,
     list,
     load,
-    remove
+    remove,
+    setStorageFolder
 };

@@ -21,12 +21,8 @@ Discord Backup is a powerful [Node.js](https://nodejs.org) module that allows yo
 ## Installation
 
 ```js
-npm install --save discord-backup
+npm install --save discord-rebackup
 ```
-
-## Examples
-
-You can read this example bot on Github: [backups-bot](https://github.com/Androz2091/backups-bot)
 
 ### Create
 
@@ -38,7 +34,7 @@ Create a backup for the server specified in the parameters!
  * @param {object} [options] - The backup options
  */
 
-const backup = require("discord-backup");
+const backup = require("discord-rebackup");
 backup.create(Guild, options).then((backupData) => {
     console.log(backupData.id); // NSJH2
 });
@@ -56,7 +52,7 @@ Allows you to load a backup on a Discord server!
  * @param {Guild} [Guild] - The discord server on which you want to load the backup
  */
 
-const backup = require("discord-backup");
+const backup = require("discord-rebackup");
 backup.load(backupID, Guild).then(() => {
     backup.remove(backupID); // When the backup is loaded, it's recommended to delete it
 });
@@ -71,7 +67,7 @@ Fetches information from a backup
  * @param {string} [backupID] - The ID of the backup to fetch
  */
 
-const backup = require("discord-backup");
+const backup = require("discord-rebackup");
 backup.fetch(backupID).then((backupInfos) => {
     console.log(backupInfos);
     /*
@@ -93,7 +89,7 @@ backup.fetch(backupID).then((backupInfos) => {
  * @param {string} [backupID] - The ID of the backup to remove
  */
 
-const backup = require("discord-backup");
+const backup = require("discord-rebackup");
 backup.remove(backupID);
 ```
 
@@ -102,7 +98,7 @@ backup.remove(backupID);
 **Note**: `backup#list()` simply returns an array of IDs, you must fetch the ID to get complete information.
 
 ```js
-const backup = require("discord-backup");
+const backup = require("discord-rebackup");
 backup.list().then((backups) => {
     console.log(backups); // Expected Output [ "BC5qo", "Jdo91", ...]
 });
@@ -113,7 +109,7 @@ backup.list().then((backups) => {
 Updates the storage folder to another
 
 ```js
-const backup = require("discord-backup");
+const backup = require("discord-rebackup");
 backup.setStorageFolder(__dirname+"/backups/");
 await backup.create(guild); // Backup created in ./backups/
 backup.setStorageFolder(__dirname+"/my-backups/");
@@ -127,7 +123,7 @@ await backup.create(guild); // Backup created in ./my-backups/
 You can use more options for backup creation:
 
 ```js
-const backup = require("discord-backup");
+const backup = require("discord-rebackup");
 backup.create(guild, {
     maxMessagesPerChannel: 10,
     jsonSave: false,
@@ -148,7 +144,7 @@ backup.create(guild, {
 As you can see, you're able to load a backup from your own data instead of from an ID:
 
 ```js
-const backup = require("discord-backup");
+const backup = require("discord-rebackup");
 backup.load(backupData, guild, {
     clearGuildBeforeRestore: true
 });
@@ -162,7 +158,7 @@ backup.load(backupData, guild, {
 ```js
 // Load modules
 const Discord = require("discord.js"),
-backup = require("discord-backup"),
+backup = require("discord-rebackup"),
 client = new Discord.Client(),
 settings = {
     prefix: "b!",
@@ -275,7 +271,7 @@ client.login(settings.token);
 
 ## Restored things
 
-Here are all things that can be restored with `discord-backup`:  
+Here are all things that can be restored with `discord-rebackup`:  
 
 * Server icon  
 * Server banner  

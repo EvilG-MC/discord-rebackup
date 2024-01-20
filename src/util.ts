@@ -30,7 +30,8 @@ import {
     GuildVerificationLevel,
     FetchMessagesOptions,
     OverwriteType,
-    AttachmentBuilder
+    AttachmentBuilder,
+    StageChannel
 } from 'discord.js';
 
 const MaxBitratePerTier: Record<GuildPremiumTier, number> = {
@@ -43,7 +44,7 @@ const MaxBitratePerTier: Record<GuildPremiumTier, number> = {
 /**
  * Gets the permissions for a channel
  */
-export function fetchChannelPermissions(channel: TextChannel | VoiceChannel | CategoryChannel | NewsChannel) {
+export function fetchChannelPermissions(channel: TextChannel | VoiceChannel | CategoryChannel | NewsChannel | StageChannel) {
     const permissions: ChannelPermissionsData[] = [];
     channel.permissionOverwrites.cache
         .filter((p) => p.type === OverwriteType.Role)
@@ -65,6 +66,21 @@ export function fetchChannelPermissions(channel: TextChannel | VoiceChannel | Ca
  * Fetches the voice channel data that is necessary for the backup
  */
 export async function fetchVoiceChannelData(channel: VoiceChannel) {
+    return new Promise<VoiceChannelData>(async (resolve) => {
+        const channelData: VoiceChannelData = {
+            type: ChannelType.GuildVoice,
+            name: channel.name,
+            bitrate: channel.bitrate,
+            userLimit: channel.userLimit,
+            parent: channel.parent ? channel.parent.name : null,
+            permissions: fetchChannelPermissions(channel)
+        };
+        /* Return channel data */
+        resolve(channelData);
+    });
+}
+
+export async function fetchStageChannelData(channel: StageChannel) {
     return new Promise<VoiceChannelData>(async (resolve) => {
         const channelData: VoiceChannelData = {
             type: ChannelType.GuildVoice,
@@ -140,7 +156,7 @@ export async function fetchTextChannelData(channel: TextChannel | NewsChannel, o
             topic: channel.topic,
             permissions: fetchChannelPermissions(channel),
             messages: [],
-            isNews: channel.type === ChannelType.GuildNews,
+            isNews: channel.type === ChannelType.GuildAnnouncement,
             threads: []
         };
         /* Fetch channel threads */
@@ -254,12 +270,30 @@ export async function loadChannel(
         };
         if (channelData.type === ChannelType.GuildText
             || channelData.type === ChannelType.GuildAnnouncement
+            || channelData.type === ChannelType.GuildForum
+            || channelData.type === ChannelType.GuildMedia
+            || channelData.type === ChannelType.GuildStageVoice
         ) {
             createOptions.topic = (channelData as TextChannelData).topic;
             createOptions.nsfw = (channelData as TextChannelData).nsfw;
             createOptions.rateLimitPerUser = (channelData as TextChannelData).rateLimitPerUser;
-            createOptions.type =
-                (channelData as TextChannelData).isNews && guild.features.includes(GuildFeature.News) ? ChannelType.GuildAnnouncement : ChannelType.GuildText;
+
+            if ((channelData as TextChannelData).isNews && guild.features.includes(GuildFeature.News)) {
+                createOptions.type = ChannelType.GuildAnnouncement;
+            } else {
+                createOptions.type = (channelData.type as Exclude<
+                    ChannelType,
+                    | ChannelType.DM
+                    | ChannelType.GroupDM
+                    | ChannelType.PublicThread
+                    | ChannelType.AnnouncementThread
+                    | ChannelType.PrivateThread
+                >);
+
+                if (channelData.type === ChannelType.GuildStageVoice) {
+                    createOptions.userLimit = 0;
+                };
+            }
         } else if (channelData.type === ChannelType.GuildVoice) {
             // Downgrade bitrate
             let bitrate = (channelData as VoiceChannelData).bitrate;

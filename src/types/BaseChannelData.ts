@@ -1,8 +1,8 @@
-import { TextBasedChannelTypes, VoiceBasedChannelTypes, ThreadChannelType } from 'discord.js';
+import { TextBasedChannelTypes, VoiceBasedChannelTypes, ThreadChannelType, ChannelType } from 'discord.js';
 import { ChannelPermissionsData } from './';
 
 export interface BaseChannelData {
-    type: TextBasedChannelTypes | VoiceBasedChannelTypes | ThreadChannelType;
+    type: TextBasedChannelTypes | VoiceBasedChannelTypes | ThreadChannelType | ChannelType;
     name: string;
     parent?: string;
     permissions: ChannelPermissionsData[];

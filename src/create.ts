@@ -8,9 +8,9 @@ import type {
     TextChannelData,
     VoiceChannelData
 } from './types';
-import type { CategoryChannel, Collection, Guild, GuildChannel, Snowflake, TextChannel, ThreadChannel, VoiceChannel } from 'discord.js';
+import type { CategoryChannel, Collection, Guild, GuildChannel, Snowflake, StageChannel, TextChannel, ThreadChannel, VoiceChannel } from 'discord.js';
 import { ChannelType } from 'discord.js';
-import { fetchChannelPermissions, fetchTextChannelData, fetchVoiceChannelData } from './util';
+import { fetchChannelPermissions, fetchTextChannelData, fetchVoiceChannelData, fetchStageChannelData } from './util';
 import { MemberData } from './types/MemberData';
 
 /**
@@ -134,11 +134,14 @@ export async function getChannels(guild: Guild, options: CreateOptions) {
                     const channelData: TextChannelData = await fetchTextChannelData(child as TextChannel, options); // Gets the channel data
                     categoryData.children.push(channelData); // And then push the child in the categoryData
 
-                } else {
+                } else if (child.type === ChannelType.GuildStageVoice) {
 
+                    const channelData: VoiceChannelData = await fetchStageChannelData(child as StageChannel); // Gets the channel data
+                    channelData.userLimit = 0;
+                    categoryData.children.push(channelData); // And then push the child in the categoryData
+                } else {
                     const channelData: VoiceChannelData = await fetchVoiceChannelData(child as VoiceChannel); // Gets the channel data
                     categoryData.children.push(channelData); // And then push the child in the categoryData
-
                 }
             }
             channels.categories.push(categoryData); // Update channels object
@@ -148,7 +151,7 @@ export async function getChannels(guild: Guild, options: CreateOptions) {
             .filter((ch) => {
                 return !ch.parent && ch.type !== ChannelType.GuildCategory
                     //&& ch.type !== 'GUILD_STORE' // there is no way to restore store channels, ignore them
-                    && ch.type !== ChannelType.GuildNewsThread && ch.type !== ChannelType.GuildPrivateThread && ch.type !== ChannelType.GuildPublicThread // threads will be saved with fetchTextChannelData
+                    && ch.type !== ChannelType.AnnouncementThread && ch.type !== ChannelType.PrivateThread && ch.type !== ChannelType.PublicThread // threads will be saved with fetchTextChannelData
             }) as Collection<Snowflake, Exclude<GuildChannel, ThreadChannel>>)
             .sort((a, b) => a.position - b.position)
             .toJSON();
@@ -158,6 +161,7 @@ export async function getChannels(guild: Guild, options: CreateOptions) {
                 || channel.type === ChannelType.GuildAnnouncement
                 || channel.type === ChannelType.GuildForum
                 || channel.type === ChannelType.GuildMedia
+                || channel.type === ChannelType.GuildStageVoice
             ) {
                 const channelData: TextChannelData = await fetchTextChannelData(channel as TextChannel, options); // Gets the channel data
                 channels.others.push(channelData); // Update channels object

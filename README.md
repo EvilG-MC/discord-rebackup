@@ -1,7 +1,7 @@
 # Discord RE-Backup
 
-[![downloadsBadge](https://img.shields.io/npm/dt/discord-backup?style=for-the-badge)](https://npmjs.com/discord-backup)
-[![versionBadge](https://img.shields.io/npm/v/discord-backup?style=for-the-badge)](https://npmjs.com/discord-backup)
+[![downloadsBadge](https://img.shields.io/npm/dt/discord-rebackup?style=for-the-badge)](https://npmjs.com/rediscord-backup)
+[![versionBadge](https://img.shields.io/npm/v/discord-rebackup?style=for-the-badge)](https://npmjs.com/discord-rebackup)
 
 **Note**: this module uses recent discordjs features and requires discord.js v14.
 

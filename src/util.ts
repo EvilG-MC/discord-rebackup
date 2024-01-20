@@ -10,11 +10,11 @@ import type {
 } from './types';
 import {
     CategoryChannel,
-    ChannelType, 
+    ChannelType,
     Collection,
     Guild,
     GuildFeature,
-    GuildDefaultMessageNotifications, 
+    GuildDefaultMessageNotifications,
     GuildSystemChannelFlags,
     GuildChannelCreateOptions,
     Message,
@@ -32,7 +32,6 @@ import {
     OverwriteType,
     AttachmentBuilder
 } from 'discord.js';
-import nodeFetch from 'node-fetch';
 
 const MaxBitratePerTier: Record<GuildPremiumTier, number> = {
     [GuildPremiumTier.None]: 64000,
@@ -80,7 +79,7 @@ export async function fetchVoiceChannelData(channel: VoiceChannel) {
     });
 }
 
-export async function fetchChannelMessages (channel: TextChannel | NewsChannel | ThreadChannel, options: CreateOptions): Promise<MessageData[]> {
+export async function fetchChannelMessages(channel: TextChannel | NewsChannel | ThreadChannel, options: CreateOptions): Promise<MessageData[]> {
     let messages: MessageData[] = [];
     const messageCount: number = isNaN(options.maxMessagesPerChannel) ? 10 : options.maxMessagesPerChannel;
     const fetchOptions: FetchMessagesOptions = { limit: 100 };
@@ -104,7 +103,7 @@ export async function fetchChannelMessages (channel: TextChannel | NewsChannel |
                 let attach = a.url
                 if (a.url && ['png', 'jpg', 'jpeg', 'jpe', 'jif', 'jfif', 'jfi'].includes(a.url)) {
                     if (options.saveImages && options.saveImages === 'base64') {
-                        attach = (await (nodeFetch(a.url).then((res) => res.buffer()))).toString('base64')
+                        attach = (await (fetch(a.url).then((res) => (res as any).buffer()))).toString('base64')
                     }
                 }
                 return {
@@ -125,7 +124,7 @@ export async function fetchChannelMessages (channel: TextChannel | NewsChannel |
     }
 
     return messages;
-} 
+}
 
 /**
  * Fetches the text channel data that is necessary for the backup
@@ -215,12 +214,12 @@ export async function loadChannel(
 ) {
     return new Promise(async (resolve) => {
 
-        const loadMessages = (channel: TextChannel | ThreadChannel, messages: MessageData[], previousWebhook?: Webhook): Promise<Webhook|void> => {
+        const loadMessages = (channel: TextChannel | ThreadChannel, messages: MessageData[], previousWebhook?: Webhook): Promise<Webhook | void> => {
             return new Promise(async (resolve) => {
                 const webhook = previousWebhook || await (channel as TextChannel).createWebhook({
                     name: 'MessagesBackup',
                     avatar: channel.client.user.displayAvatarURL()
-                }).catch(() => {});
+                }).catch(() => { });
                 if (!webhook) return resolve();
                 messages = messages
                     .filter((m) => m.content.length > 0 || m.embeds.length > 0 || m.files.length > 0)
@@ -253,12 +252,14 @@ export async function loadChannel(
             type: null,
             parent: category
         };
-        if (channelData.type === ChannelType.GuildText || channelData.type === ChannelType.GuildNews) {
+        if (channelData.type === ChannelType.GuildText
+            || channelData.type === ChannelType.GuildAnnouncement
+        ) {
             createOptions.topic = (channelData as TextChannelData).topic;
             createOptions.nsfw = (channelData as TextChannelData).nsfw;
             createOptions.rateLimitPerUser = (channelData as TextChannelData).rateLimitPerUser;
             createOptions.type =
-                (channelData as TextChannelData).isNews && guild.features.includes(GuildFeature.News) ? ChannelType.GuildNews : ChannelType.GuildText;
+                (channelData as TextChannelData).isNews && guild.features.includes(GuildFeature.News) ? ChannelType.GuildAnnouncement : ChannelType.GuildText;
         } else if (channelData.type === ChannelType.GuildVoice) {
             // Downgrade bitrate
             let bitrate = (channelData as VoiceChannelData).bitrate;
@@ -286,9 +287,9 @@ export async function loadChannel(
             await channel.permissionOverwrites.set(finalPermissions);
             if (channelData.type === ChannelType.GuildText) {
                 /* Load messages */
-                let webhook: Webhook|void;
+                let webhook: Webhook | void;
                 if ((channelData as TextChannelData).messages.length > 0) {
-                    webhook = await loadMessages(channel as TextChannel, (channelData as TextChannelData).messages).catch(() => {});
+                    webhook = await loadMessages(channel as TextChannel, (channelData as TextChannelData).messages).catch(() => { });
                 }
                 /* Load threads */
                 if ((channelData as TextChannelData).threads.length > 0) { //&& guild.features.includes('THREADS_ENABLED')) {
@@ -320,27 +321,27 @@ export async function clearGuild(guild: Guild) {
     guild.roles.cache
         .filter((role) => !role.managed && role.editable && role.id !== guild.id)
         .forEach((role) => {
-            role.delete().catch(() => {});
+            role.delete().catch(() => { });
         });
     guild.channels.cache.forEach((channel) => {
-        channel.delete().catch(() => {});
+        channel.delete().catch(() => { });
     });
     guild.emojis.cache.forEach((emoji) => {
-        emoji.delete().catch(() => {});
+        emoji.delete().catch(() => { });
     });
     const webhooks = await guild.fetchWebhooks();
     webhooks.forEach((webhook) => {
-        webhook.delete().catch(() => {});
+        webhook.delete().catch(() => { });
     });
     const bans = await guild.bans.fetch();
     bans.forEach((ban) => {
-        guild.members.unban(ban.user).catch(() => {});
+        guild.members.unban(ban.user).catch(() => { });
     });
     guild.setAFKChannel(null);
     guild.setAFKTimeout(60 * 5);
     guild.setIcon(null);
-    guild.setBanner(null).catch(() => {});
-    guild.setSplash(null).catch(() => {});
+    guild.setBanner(null).catch(() => { });
+    guild.setSplash(null).catch(() => { });
     guild.setDefaultMessageNotifications(GuildDefaultMessageNotifications.OnlyMentions);
     guild.setWidgetSettings({
         enabled: false,

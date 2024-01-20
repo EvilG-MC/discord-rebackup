@@ -10,7 +10,6 @@ import type {
 } from './types';
 import type { CategoryChannel, Collection, Guild, GuildChannel, Snowflake, TextChannel, ThreadChannel, VoiceChannel } from 'discord.js';
 import { ChannelType } from 'discord.js';
-import nodeFetch from 'node-fetch';
 import { fetchChannelPermissions, fetchTextChannelData, fetchVoiceChannelData } from './util';
 import { MemberData } from './types/MemberData';
 
@@ -90,9 +89,9 @@ export async function getEmojis(guild: Guild, options: CreateOptions) {
             name: emoji.name
         };
         if (options.saveImages && options.saveImages === 'base64') {
-            eData.base64 = (await nodeFetch(emoji.url).then((res) => res.buffer())).toString('base64');
+            eData.base64 = (await fetch(emoji.imageURL()).then((res) => (res as any).buffer())).toString('base64');
         } else {
-            eData.url = emoji.url;
+            eData.url = emoji.imageURL();
         }
         emojis.push(eData);
     });
@@ -126,12 +125,20 @@ export async function getChannels(guild: Guild, options: CreateOptions) {
             const children = category.children.cache.sort((a, b) => a.position - b.position).toJSON();
             for (const child of children) {
                 // For each child channel
-                if (child.type === ChannelType.GuildText || child.type === ChannelType.GuildNews) {
+                if (child.type === ChannelType.GuildText
+                    || child.type === ChannelType.GuildAnnouncement
+                    || child.type === ChannelType.GuildForum
+                    || child.type === ChannelType.GuildMedia
+                ) {
+
                     const channelData: TextChannelData = await fetchTextChannelData(child as TextChannel, options); // Gets the channel data
                     categoryData.children.push(channelData); // And then push the child in the categoryData
+
                 } else {
+
                     const channelData: VoiceChannelData = await fetchVoiceChannelData(child as VoiceChannel); // Gets the channel data
                     categoryData.children.push(channelData); // And then push the child in the categoryData
+
                 }
             }
             channels.categories.push(categoryData); // Update channels object
@@ -147,7 +154,11 @@ export async function getChannels(guild: Guild, options: CreateOptions) {
             .toJSON();
         for (const channel of others) {
             // For each channel
-            if (channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildNews) {
+            if (channel.type === ChannelType.GuildText
+                || channel.type === ChannelType.GuildAnnouncement
+                || channel.type === ChannelType.GuildForum
+                || channel.type === ChannelType.GuildMedia
+            ) {
                 const channelData: TextChannelData = await fetchTextChannelData(channel as TextChannel, options); // Gets the channel data
                 channels.others.push(channelData); // Update channels object
             } else {

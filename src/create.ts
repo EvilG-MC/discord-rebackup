@@ -130,18 +130,27 @@ export async function getChannels(guild: Guild, options: CreateOptions) {
                     || child.type === ChannelType.GuildForum
                     || child.type === ChannelType.GuildMedia
                 ) {
+                    if (
+                        guild.rulesChannelId === child.id
+                        || guild.safetyAlertsChannelId === child.id
+                        || guild.systemChannelId === child.id
+                        || guild.widgetChannelId === child.id
+                        || guild.publicUpdatesChannelId === child.id
+                    ) continue;
 
                     const channelData: TextChannelData = await fetchTextChannelData(child as TextChannel, options); // Gets the channel data
-                    categoryData.children.push(channelData); // And then push the child in the categoryData
-
+                    categoryData.children.push(channelData);
+                    // And then push the child in the categoryData
                 } else if (child.type === ChannelType.GuildStageVoice) {
 
                     const channelData: VoiceChannelData = await fetchStageChannelData(child as StageChannel); // Gets the channel data
                     channelData.userLimit = 0;
-                    categoryData.children.push(channelData); // And then push the child in the categoryData
+                    categoryData.children.push(channelData);
+                    // And then push the child in the categoryData
                 } else {
                     const channelData: VoiceChannelData = await fetchVoiceChannelData(child as VoiceChannel); // Gets the channel data
-                    categoryData.children.push(channelData); // And then push the child in the categoryData
+                    categoryData.children.push(channelData);
+                    // And then push the child in the categoryData
                 }
             }
             channels.categories.push(categoryData); // Update channels object
@@ -161,10 +170,21 @@ export async function getChannels(guild: Guild, options: CreateOptions) {
                 || channel.type === ChannelType.GuildAnnouncement
                 || channel.type === ChannelType.GuildForum
                 || channel.type === ChannelType.GuildMedia
-                || channel.type === ChannelType.GuildStageVoice
             ) {
+                if (
+                    guild.rulesChannelId === channel.id
+                    || guild.safetyAlertsChannelId === channel.id
+                    || guild.systemChannelId === channel.id
+                    || guild.widgetChannelId === channel.id
+                    || guild.publicUpdatesChannelId === channel.id
+                ) continue;
                 const channelData: TextChannelData = await fetchTextChannelData(channel as TextChannel, options); // Gets the channel data
                 channels.others.push(channelData); // Update channels object
+            } else if (channel.type === ChannelType.GuildStageVoice) {
+                const channelData: VoiceChannelData = await fetchStageChannelData(channel as StageChannel); // Gets the channel data
+
+                channelData.userLimit = 0;
+                channels.others.push(channelData);
             } else {
                 const channelData: VoiceChannelData = await fetchVoiceChannelData(channel as VoiceChannel); // Gets the channel data
                 channels.others.push(channelData); // Update channels object

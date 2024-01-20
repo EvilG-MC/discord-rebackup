@@ -1,22 +1,16 @@
-# Discord Backup
+# Discord RE-Backup
 
 [![downloadsBadge](https://img.shields.io/npm/dt/discord-backup?style=for-the-badge)](https://npmjs.com/discord-backup)
 [![versionBadge](https://img.shields.io/npm/v/discord-backup?style=for-the-badge)](https://npmjs.com/discord-backup)
 
-**Note**: this module uses recent discordjs features and requires discord.js v13.
+**Note**: this module uses recent discordjs features and requires discord.js v14.
 
-Discord Backup is a powerful [Node.js](https://nodejs.org) module that allows you to easily manage discord server backups.
+Discord RE-Backup is a powerful [Node.js](https://nodejs.org) module that allows you to easily manage discord server backups.
 
 * Unlimited backups!
 * Backup creation takes less than 10 seconds!
 * Even restores messages with webhooks!
 * And restores everything that is possible to restore (channels, roles, permissions, bans, emojis, name, icon, and more!)
-
-## Changelog
-
-* Supports base64 for emojis/icon/banner backup
-* New option to save backups in your own database
-* `backup#delete()` removed in favor of `backup#remove()`
 
 ## Installation
 
@@ -34,7 +28,8 @@ Create a backup for the server specified in the parameters!
  * @param {object} [options] - The backup options
  */
 
-const backup = require("discord-rebackup");
+import backup from "discord-rebackup";
+
 backup.create(Guild, options).then((backupData) => {
     console.log(backupData.id); // NSJH2
 });
@@ -52,7 +47,8 @@ Allows you to load a backup on a Discord server!
  * @param {Guild} [Guild] - The discord server on which you want to load the backup
  */
 
-const backup = require("discord-rebackup");
+import backup from "discord-rebackup";
+
 backup.load(backupID, Guild).then(() => {
     backup.remove(backupID); // When the backup is loaded, it's recommended to delete it
 });
@@ -67,7 +63,8 @@ Fetches information from a backup
  * @param {string} [backupID] - The ID of the backup to fetch
  */
 
-const backup = require("discord-rebackup");
+import backup from "discord-rebackup";
+
 backup.fetch(backupID).then((backupInfos) => {
     console.log(backupInfos);
     /*
@@ -89,7 +86,8 @@ backup.fetch(backupID).then((backupInfos) => {
  * @param {string} [backupID] - The ID of the backup to remove
  */
 
-const backup = require("discord-rebackup");
+import backup from "discord-rebackup";
+
 backup.remove(backupID);
 ```
 
@@ -98,7 +96,8 @@ backup.remove(backupID);
 **Note**: `backup#list()` simply returns an array of IDs, you must fetch the ID to get complete information.
 
 ```js
-const backup = require("discord-rebackup");
+import backup from "discord-rebackup";
+
 backup.list().then((backups) => {
     console.log(backups); // Expected Output [ "BC5qo", "Jdo91", ...]
 });
@@ -109,7 +108,8 @@ backup.list().then((backups) => {
 Updates the storage folder to another
 
 ```js
-const backup = require("discord-rebackup");
+import backup from "discord-rebackup";
+
 backup.setStorageFolder(__dirname+"/backups/");
 await backup.create(guild); // Backup created in ./backups/
 backup.setStorageFolder(__dirname+"/my-backups/");
@@ -123,7 +123,8 @@ await backup.create(guild); // Backup created in ./my-backups/
 You can use more options for backup creation:
 
 ```js
-const backup = require("discord-rebackup");
+import backup from "discord-rebackup";
+
 backup.create(guild, {
     maxMessagesPerChannel: 10,
     jsonSave: false,
@@ -144,7 +145,8 @@ backup.create(guild, {
 As you can see, you're able to load a backup from your own data instead of from an ID:
 
 ```js
-const backup = require("discord-rebackup");
+import backup from "discord-rebackup";
+
 backup.load(backupData, guild, {
     clearGuildBeforeRestore: true
 });
@@ -157,9 +159,10 @@ backup.load(backupData, guild, {
 
 ```js
 // Load modules
-const Discord = require("discord.js"),
-backup = require("discord-rebackup"),
-client = new Discord.Client(),
+import backup from "discord-rebackup";
+import { Client, EmbedBuilder } from "discord.js";
+
+client = new Client();
 settings = {
     prefix: "b!",
     token: "YOURTOKEN"
@@ -245,7 +248,7 @@ client.on("message", async message => {
             const date = new Date(backupInfos.data.createdTimestamp);
             const yyyy = date.getFullYear().toString(), mm = (date.getMonth()+1).toString(), dd = date.getDate().toString();
             const formatedDate = `${yyyy}/${(mm[1]?mm:"0"+mm[0])}/${(dd[1]?dd:"0"+dd[0])}`;
-            let embed = new Discord.MessageEmbed()
+            let embed = new EmbedBuilder()
                 .setAuthor("Backup Informations")
                 // Display the backup ID
                 .addField("Backup ID", backupInfos.id, false)

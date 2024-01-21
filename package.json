@@ -1,5 +1,5 @@
 {
-  "name": "discord-rebackup",
+  "name": "@ihrz/discord-rebackup",
   "version": "3.3.7",
   "description": "An rewamped fork of the discord-backup module ! by the iHorizon Team",
   "main": "lib/index.js",
@@ -25,7 +25,7 @@
     "discord-backup"
   ],
   "publishConfig": {
-      "@ihrz:registry": "https://npm.pkg.github.com"
+    "registry":"https://npm.pkg.github.com/ihrz"
   },
   "author": "iHorizon Team",
   "license": "ISC",

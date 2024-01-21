@@ -25,7 +25,7 @@
     "discord-backup"
   ],
   "publishConfig": {
-      "@Kisakay:registry": "https://npm.pkg.github.com"
+      "@ihrz:registry": "https://npm.pkg.github.com"
   },
   "author": "iHorizon Team",
   "license": "ISC",

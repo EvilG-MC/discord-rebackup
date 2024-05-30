@@ -133,7 +133,6 @@ export async function getChannels(guild: Guild, options: CreateOptions) {
                     if (
                         guild.rulesChannelId === child.id
                         || guild.safetyAlertsChannelId === child.id
-                        || guild.systemChannelId === child.id
                         || guild.widgetChannelId === child.id
                         || guild.publicUpdatesChannelId === child.id
                     ) continue;
@@ -174,7 +173,6 @@ export async function getChannels(guild: Guild, options: CreateOptions) {
                 if (
                     guild.rulesChannelId === channel.id
                     || guild.safetyAlertsChannelId === channel.id
-                    || guild.systemChannelId === channel.id
                     || guild.widgetChannelId === channel.id
                     || guild.publicUpdatesChannelId === channel.id
                 ) continue;

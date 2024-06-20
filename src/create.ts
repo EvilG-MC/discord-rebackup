@@ -8,17 +8,11 @@ import type {
     TextChannelData,
     VoiceChannelData
 } from './types';
-import type { CategoryChannel, Collection, Guild, GuildChannel, Snowflake, StageChannel, TextChannel, ThreadChannel, VoiceChannel } from 'discord.js';
-import { ChannelType } from 'discord.js';
+import { ChannelType, CategoryChannel, Collection, Guild, GuildChannel, Snowflake, StageChannel, TextChannel, ThreadChannel, VoiceChannel } from 'pwss';
 import { fetchChannelPermissions, fetchTextChannelData, fetchVoiceChannelData, fetchStageChannelData } from './util';
 import { MemberData } from './types/MemberData';
 
-/**
- * Returns an array with the banned members of the guild
- * @param {Guild} guild The Discord guild
- * @returns {Promise<BanData[]>} The banned members
- */
-export async function getBans(guild: Guild) {
+export async function getBans(guild: Guild): Promise<BanData[]> {
     const bans: BanData[] = [];
     const cases = await guild.bans.fetch(); // Gets the list of the banned members
     cases.forEach((ban) => {
@@ -30,33 +24,23 @@ export async function getBans(guild: Guild) {
     return bans;
 }
 
-/**
- * Returns an array with the members of the guild
- * @param {Guild} guild The Discord guild
- * @returns {Promise<MemberData>}
- */
-export async function getMembers(guild: Guild) {
+export async function getMembers(guild: Guild): Promise<MemberData[]> {
     const members: MemberData[] = [];
     guild.members.cache.forEach((member) => {
         members.push({
-            userId: member.user.id, // Member ID
-            username: member.user.username, // Member username
-            discriminator: member.user.discriminator, // Member discriminator
-            avatarUrl: member.user.avatarURL(), // Member avatar URL
-            joinedTimestamp: member.joinedTimestamp, // Member joined timestamp
-            roles: member.roles.cache.map((role) => role.id), // Member roles
-            bot: member.user.bot // Member bot
+            userId: member.user.id,
+            username: member.user.username,
+            discriminator: member.user.discriminator,
+            avatarUrl: member.user.avatarURL(),
+            joinedTimestamp: member.joinedTimestamp,
+            roles: member.roles.cache.map((role) => role.id),
+            bot: member.user.bot
         });
     });
     return members;
 }
 
-/**
- * Returns an array with the roles of the guild
- * @param {Guild} guild The discord guild
- * @returns {Promise<RoleData[]>} The roles of the guild
- */
-export async function getRoles(guild: Guild) {
+export async function getRoles(guild: Guild): Promise<RoleData[]> {
     const roles: RoleData[] = [];
     guild.roles.cache
         .filter((role) => !role.managed)
@@ -76,13 +60,7 @@ export async function getRoles(guild: Guild) {
     return roles;
 }
 
-/**
- * Returns an array with the emojis of the guild
- * @param {Guild} guild The discord guild
- * @param {CreateOptions} options The backup options
- * @returns {Promise<EmojiData[]>} The emojis of the guild
- */
-export async function getEmojis(guild: Guild, options: CreateOptions) {
+export async function getEmojis(guild: Guild, options: CreateOptions): Promise<EmojiData[]> {
     const emojis: EmojiData[] = [];
     guild.emojis.cache.forEach(async (emoji) => {
         const eData: EmojiData = {
@@ -98,33 +76,27 @@ export async function getEmojis(guild: Guild, options: CreateOptions) {
     return emojis;
 }
 
-/**
- * Returns an array with the channels of the guild
- * @param {Guild} guild The discord guild
- * @param {CreateOptions} options The backup options
- * @returns {ChannelData[]} The channels of the guild
- */
-export async function getChannels(guild: Guild, options: CreateOptions) {
+export async function getChannels(guild: Guild, options: CreateOptions): Promise<ChannelsData> {
     return new Promise<ChannelsData>(async (resolve) => {
         const channels: ChannelsData = {
             categories: [],
             others: []
         };
-        // Gets the list of the categories and sort them by position
-        const categories = (guild.channels.cache
-            .filter((ch) => ch.type === ChannelType.GuildCategory) as Collection<Snowflake, CategoryChannel>)
-            .sort((a, b) => a.position - b.position)
-            .toJSON() as CategoryChannel[];
+
+        const categories = guild.channels.cache
+            .filter((ch) => ch.type === ChannelType.GuildCategory)
+            .sort((a, b) => ('position' in a && 'position' in b) ? a.position - b.position : 0)
+            .map((category) => category) as CategoryChannel[];
+
         for (const category of categories) {
             const categoryData: CategoryData = {
-                name: category.name, // The name of the category
-                permissions: fetchChannelPermissions(category), // The overwrite permissions of the category
-                children: [] // The children channels of the category
+                name: category.name,
+                permissions: fetchChannelPermissions(category),
+                children: []
             };
-            // Gets the children channels of the category and sort them by position
-            const children = category.children.cache.sort((a, b) => a.position - b.position).toJSON();
+
+            const children = Array.from(category.children.cache.values()).sort((a, b) => a.position - b.position);
             for (const child of children) {
-                // For each child channel
                 if (child.type === ChannelType.GuildText
                     || child.type === ChannelType.GuildAnnouncement
                     || child.type === ChannelType.GuildForum
@@ -137,34 +109,32 @@ export async function getChannels(guild: Guild, options: CreateOptions) {
                         || guild.publicUpdatesChannelId === child.id
                     ) continue;
 
-                    const channelData: TextChannelData = await fetchTextChannelData(child as TextChannel, options); // Gets the channel data
+                    const channelData: TextChannelData = await fetchTextChannelData(child as TextChannel, options);
                     categoryData.children.push(channelData);
-                    // And then push the child in the categoryData
                 } else if (child.type === ChannelType.GuildStageVoice) {
-
-                    const channelData: VoiceChannelData = await fetchStageChannelData(child as StageChannel); // Gets the channel data
+                    const channelData: VoiceChannelData = await fetchStageChannelData(child as StageChannel);
                     channelData.userLimit = 0;
                     categoryData.children.push(channelData);
-                    // And then push the child in the categoryData
                 } else {
-                    const channelData: VoiceChannelData = await fetchVoiceChannelData(child as VoiceChannel); // Gets the channel data
+                    const channelData: VoiceChannelData = await fetchVoiceChannelData(child as VoiceChannel);
                     categoryData.children.push(channelData);
-                    // And then push the child in the categoryData
                 }
             }
-            channels.categories.push(categoryData); // Update channels object
+            channels.categories.push(categoryData);
         }
-        // Gets the list of the other channels (that are not in a category) and sort them by position
-        const others = (guild.channels.cache
+
+        const others = guild.channels.cache
             .filter((ch) => {
                 return !ch.parent && ch.type !== ChannelType.GuildCategory
-                    //&& ch.type !== 'GUILD_STORE' // there is no way to restore store channels, ignore them
-                    && ch.type !== ChannelType.AnnouncementThread && ch.type !== ChannelType.PrivateThread && ch.type !== ChannelType.PublicThread // threads will be saved with fetchTextChannelData
-            }) as Collection<Snowflake, Exclude<GuildChannel, ThreadChannel>>)
-            .sort((a, b) => a.position - b.position)
-            .toJSON();
+                    && ch.type !== ChannelType.AnnouncementThread && ch.type !== ChannelType.PrivateThread && ch.type !== ChannelType.PublicThread
+            })
+            .sort((a, b) => {
+                if (!('position' in a) || !('position' in b)) return 0;
+                return a.position - b.position;
+            })
+            .map((channel) => channel);
+
         for (const channel of others) {
-            // For each channel
             if (channel.type === ChannelType.GuildText
                 || channel.type === ChannelType.GuildAnnouncement
                 || channel.type === ChannelType.GuildForum
@@ -176,18 +146,18 @@ export async function getChannels(guild: Guild, options: CreateOptions) {
                     || guild.widgetChannelId === channel.id
                     || guild.publicUpdatesChannelId === channel.id
                 ) continue;
-                const channelData: TextChannelData = await fetchTextChannelData(channel as TextChannel, options); // Gets the channel data
-                channels.others.push(channelData); // Update channels object
-            } else if (channel.type === ChannelType.GuildStageVoice) {
-                const channelData: VoiceChannelData = await fetchStageChannelData(channel as StageChannel); // Gets the channel data
 
+                const channelData: TextChannelData = await fetchTextChannelData(channel as TextChannel, options);
+                channels.others.push(channelData);
+            } else if (channel.type === ChannelType.GuildStageVoice) {
+                const channelData: VoiceChannelData = await fetchStageChannelData(channel as StageChannel);
                 channelData.userLimit = 0;
                 channels.others.push(channelData);
             } else {
-                const channelData: VoiceChannelData = await fetchVoiceChannelData(channel as VoiceChannel); // Gets the channel data
-                channels.others.push(channelData); // Update channels object
+                const channelData: VoiceChannelData = await fetchVoiceChannelData(channel as VoiceChannel);
+                channels.others.push(channelData);
             }
         }
-        resolve(channels); // Returns the list of the channels
+        resolve(channels);
     });
 }

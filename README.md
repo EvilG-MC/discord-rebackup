@@ -3,7 +3,7 @@
 [![downloadsBadge](https://img.shields.io/npm/dt/discord-rebackup?style=for-the-badge)](https://npmjs.com/rediscord-backup)
 [![versionBadge](https://img.shields.io/npm/v/discord-rebackup?style=for-the-badge)](https://npmjs.com/discord-rebackup)
 
-**Note**: This module leverages the latest Discord.js features and requires discord.js v14.
+**Note**: This module leverages the latest pwss features and requires pwss v14.
 
 [![Static Badge](https://img.shields.io/badge/Created%20by%20iHorizon%20Team-blue)](https://ihorizon.me)
 
@@ -161,7 +161,7 @@ backup.load(backupData, guild, {
 ```js
 // Load modules
 import backup from "discord-rebackup";
-import { Client, EmbedBuilder } from "discord.js";
+import { Client, EmbedBuilder } from "pwss";
 
 client = new Client();
 settings = {

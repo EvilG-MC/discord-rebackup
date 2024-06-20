@@ -1,4 +1,4 @@
-import { Snowflake, ThreadAutoArchiveDuration, ThreadChannelType } from "discord.js";
+import { Snowflake, ThreadAutoArchiveDuration, ThreadChannelType } from "pwss";
 import { MessageData } from "./MessageData";
 
 export interface ThreadChannelData {

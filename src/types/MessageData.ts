@@ -1,4 +1,4 @@
-import { APIEmbed } from 'discord.js';
+import { APIEmbed } from 'pwss';
 
 export interface MessageData {
     username: string;

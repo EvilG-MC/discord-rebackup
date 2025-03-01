@@ -1,6 +1,6 @@
 import type { BackupData, BackupInfos, CreateOptions, LoadOptions } from './types/';
-import type { Guild } from 'pwss';
-import { SnowflakeUtil, IntentsBitField } from 'pwss';
+import type { Guild } from 'discord.js';
+import { SnowflakeUtil, IntentsBitField } from 'discord.js';
 
 import { sep } from 'path';
 

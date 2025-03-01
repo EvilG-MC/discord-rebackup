@@ -32,7 +32,7 @@ import {
     OverwriteType,
     AttachmentBuilder,
     StageChannel
-} from 'pwss';
+} from 'discord.js';
 
 const MaxBitratePerTier: Record<GuildPremiumTier, number> = {
     [GuildPremiumTier.None]: 64000,

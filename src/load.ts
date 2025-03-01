@@ -1,6 +1,6 @@
 import type { BackupData, LoadOptions } from './types';
-import type { NewsChannel, TextChannel, ForumChannel, VoiceBasedChannel } from 'pwss';
-import { ChannelType, Emoji, Guild, GuildFeature, Role, VoiceChannel } from 'pwss';
+import type { NewsChannel, TextChannel, ForumChannel, VoiceBasedChannel } from 'discord.js';
+import { ChannelType, Emoji, Guild, GuildFeature, Role, VoiceChannel } from 'discord.js';
 import { loadCategory, loadChannel } from './util';
 
 /**

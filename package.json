@@ -18,7 +18,7 @@
   },
   "keywords": [
     "discord",
-    "pwss",
+    "discord.js",
     "backup",
     "clone",
     "bot",
@@ -34,7 +34,7 @@
   },
   "homepage": "https://github.com/ihrz/discord-rebackup#readme",
   "dependencies": {
-    "pwss": "^1.0.20"
+    "discord.js": "^14.18.0"
   },
   "devDependencies": {
     "@types/node": "20.12.8",

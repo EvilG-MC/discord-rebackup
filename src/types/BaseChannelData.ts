@@ -1,4 +1,4 @@
-import { TextBasedChannelTypes, VoiceBasedChannelTypes, ThreadChannelType, ChannelType } from 'pwss';
+import { TextBasedChannelTypes, VoiceBasedChannelTypes, ThreadChannelType, ChannelType } from 'discord.js';
 import { ChannelPermissionsData } from './';
 
 export interface BaseChannelData {

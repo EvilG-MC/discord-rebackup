@@ -1,4 +1,4 @@
-import { MessageMentionOptions } from "pwss";
+import { MessageMentionOptions } from "discord.js";
 
 export interface LoadOptions {
     clearGuildBeforeRestore: boolean;

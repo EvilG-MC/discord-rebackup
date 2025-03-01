@@ -8,7 +8,7 @@ import type {
     TextChannelData,
     VoiceChannelData
 } from './types';
-import { ChannelType, CategoryChannel, Collection, Guild, GuildChannel, Snowflake, StageChannel, TextChannel, ThreadChannel, VoiceChannel } from 'pwss';
+import { ChannelType, CategoryChannel, Collection, Guild, GuildChannel, Snowflake, StageChannel, TextChannel, ThreadChannel, VoiceChannel } from 'discord.js';
 import { fetchChannelPermissions, fetchTextChannelData, fetchVoiceChannelData, fetchStageChannelData } from './util';
 import { MemberData } from './types/MemberData';
 

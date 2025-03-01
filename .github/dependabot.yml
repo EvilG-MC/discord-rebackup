@@ -34,7 +34,7 @@ updates:
   - dependency-name: "@types/ws"
     versions:
     - 7.4.1
-  - dependency-name: pwss
+  - dependency-name: discord.js
     versions:
     - 12.5.2
   - dependency-name: typescript

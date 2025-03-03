@@ -31,15 +31,16 @@ const getBackupData = async (backupID: string) => {
             resolve(backupData);
         } else {
             // If no backup was found, return an error message
-            reject('No backup found');
+            reject('function:getBackupData : No backup found');
         }
     });
 };
 
 /**
- * Fetches a backyp and returns the information about it
+ * Fetches a backup and returns the information about it
  */
 export const fetch = (backupID: string) => {
+    console.log('fetching backup');
     return new Promise<BackupInfos>(async (resolve, reject) => {
         getBackupData(backupID)
             .then((backupData) => {
@@ -53,7 +54,7 @@ export const fetch = (backupID: string) => {
                 resolve(backupInfos);
             })
             .catch(() => {
-                reject('No backup found');
+                reject('function: fetch: No backup found');
             });
     });
 };
@@ -70,13 +71,13 @@ export const create = async (
         jsonBeautify: true,
         doNotBackup: [],
         backupMembers: false,
-        saveImages: ''
+        saveImages: '',
+        selfBot: false
     }
 ) => {
     return new Promise<BackupData>(async (resolve, reject) => {
 
-
-        if (!guild.client.options.intents.has(IntentsBitField.Flags.Guilds)) return reject('Guilds intent is required');
+        if (!options.selfBot && !guild.client.options.intents.has(IntentsBitField.Flags.Guilds)) return reject('Guilds intent is required');
 
         try {
             const backupData: BackupData = {
@@ -86,7 +87,7 @@ export const create = async (
                 defaultMessageNotifications: guild.defaultMessageNotifications,
                 afk: guild.afkChannel ? { name: guild.afkChannel.name, timeout: guild.afkTimeout } : null,
                 widget: {
-                    enabled: guild.widgetEnabled,
+                    enabled: guild.widgetEnabled || false,
                     channel: guild.widgetChannel ? guild.widgetChannel.name : null
                 },
                 channels: { categories: [], others: [] },
@@ -98,6 +99,8 @@ export const create = async (
                 guildID: guild.id,
                 id: options.backupID ?? SnowflakeUtil.generate().toString()
             };
+
+            console.log(backupData)
             if (guild.iconURL()) {
                 if (options && options.saveImages && options.saveImages === 'base64') {
                     backupData.iconBase64 = (
@@ -202,7 +205,7 @@ export const load = async (
             // Then return the backup data
             return resolve(backupData);
         } catch (e) {
-            return reject('No backup found');
+            return reject('function:load:No backup found');
         }
     });
 };

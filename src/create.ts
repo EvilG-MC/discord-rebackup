@@ -14,13 +14,20 @@ import { MemberData } from './types/MemberData';
 
 export async function getBans(guild: Guild): Promise<BanData[]> {
     const bans: BanData[] = [];
-    const cases = await guild.bans.fetch(); // Gets the list of the banned members
-    cases.forEach((ban) => {
-        bans.push({
-            id: ban.user.id, // Banned member ID
-            reason: ban.reason // Ban reason
+    try {
+        const cases = await guild.bans.fetch(); // Gets the list of the banned members
+        cases.forEach((ban) => {
+            bans.push({
+                id: ban.user.id, // Banned member ID
+                reason: ban.reason // Ban reason
+            });
         });
-    });
+    } catch {
+        // If the bot doesn't have the permission to see the bans
+        // It will throw an error, so we catch it and return an empty array
+        return [];
+    }
+
     return bans;
 }
 
@@ -67,12 +74,13 @@ export async function getEmojis(guild: Guild, options: CreateOptions): Promise<E
             name: emoji.name
         };
         if (options.saveImages && options.saveImages === 'base64') {
-            eData.base64 = (await fetch(emoji.imageURL()).then((res) => (res as any).buffer())).toString('base64');
+            eData.base64 = (await fetch(emoji.url).then((res) => (res as any).buffer())).toString('base64');
         } else {
-            eData.url = emoji.imageURL();
+            eData.url = emoji.url;
         }
         emojis.push(eData);
     });
+
     return emojis;
 }
 

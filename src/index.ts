@@ -11,7 +11,7 @@ import * as createMaster from './create';
 import * as loadMaster from './load';
 import * as utilMaster from './util';
 
-let backups = `${__dirname}/backups`;
+let backups = process.cwd() + "/backups";
 if (!existsSync(backups)) {
     mkdirSync(backups);
 }

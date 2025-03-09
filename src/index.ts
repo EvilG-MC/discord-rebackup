@@ -40,7 +40,6 @@ const getBackupData = async (backupID: string) => {
  * Fetches a backup and returns the information about it
  */
 export const fetch = (backupID: string) => {
-    console.log('fetching backup');
     return new Promise<BackupInfos>(async (resolve, reject) => {
         getBackupData(backupID)
             .then((backupData) => {
@@ -100,30 +99,29 @@ export const create = async (
                 id: options.backupID ?? SnowflakeUtil.generate().toString()
             };
 
-            console.log(backupData)
-            if (guild.iconURL()) {
+            if (guild.icon) {
                 if (options && options.saveImages && options.saveImages === 'base64') {
                     backupData.iconBase64 = (
-                        await fetch(guild.iconURL()).then((res) => (res as any).buffer())
+                        await fetch(guild.icon).then((res) => (res as any).buffer())
                     ).toString('base64');
                 }
-                backupData.iconURL = guild.iconURL();
+                backupData.iconURL = guild.icon;
             }
-            if (guild.splashURL()) {
+            if (guild.splash) {
                 if (options && options.saveImages && options.saveImages === 'base64') {
-                    backupData.splashBase64 = (await fetch(guild.splashURL()).then((res) => (res as any).buffer())).toString(
+                    backupData.splashBase64 = (await fetch(guild.splash).then((res) => (res as any).buffer())).toString(
                         'base64'
                     );
                 }
-                backupData.splashURL = guild.splashURL();
+                backupData.splashURL = guild.splash;
             }
-            if (guild.bannerURL()) {
+            if (guild.banner) {
                 if (options && options.saveImages && options.saveImages === 'base64') {
-                    backupData.bannerBase64 = (await fetch(guild.bannerURL()).then((res) => (res as any).buffer())).toString(
+                    backupData.bannerBase64 = (await fetch(guild.banner).then((res) => (res as any).buffer())).toString(
                         'base64'
                     );
                 }
-                backupData.bannerURL = guild.bannerURL();
+                backupData.bannerURL = guild.banner;
             }
             if (options && options.backupMembers) {
                 // Backup members

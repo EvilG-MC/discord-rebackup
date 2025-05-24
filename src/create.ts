@@ -105,10 +105,16 @@ export async function getChannels(guild: Guild, options: CreateOptions): Promise
 
             const children = Array.from(category.children.cache.values()).sort((a, b) => a.position - b.position);
             for (const child of children) {
-                if (child.type === ChannelType.GuildText
+                if (
+                    child.type === ChannelType.GuildText
                     || child.type === ChannelType.GuildAnnouncement
                     || child.type === ChannelType.GuildForum
                     || child.type === ChannelType.GuildMedia
+                    // For selfbot part on discord.js-selfbot-v13
+                    // @ts-ignore
+                    || child.type === "GUILD_TEXT"
+                    // @ts-ignore
+                    || child.type === "GUILD_NEWS"
                 ) {
                     if (
                         guild.rulesChannelId === child.id
@@ -143,10 +149,16 @@ export async function getChannels(guild: Guild, options: CreateOptions): Promise
             .map((channel) => channel);
 
         for (const channel of others) {
-            if (channel.type === ChannelType.GuildText
+            if (
+                channel.type === ChannelType.GuildText
                 || channel.type === ChannelType.GuildAnnouncement
                 || channel.type === ChannelType.GuildForum
                 || channel.type === ChannelType.GuildMedia
+                // For selfbot part on discord.js-selfbot-v13
+                // @ts-ignore
+                || channel.type === "GUILD_TEXT"
+                // @ts-ignore
+                || channel.type === "GUILD_NEWS"
             ) {
                 if (
                     guild.rulesChannelId === channel.id

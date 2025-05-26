@@ -2,6 +2,7 @@ import type { BackupData, LoadOptions } from './types';
 import type { NewsChannel, TextChannel, ForumChannel, VoiceBasedChannel } from 'discord.js';
 import { ChannelType, Emoji, Guild, GuildFeature, Role, VoiceChannel } from 'discord.js';
 import { loadCategory, loadChannel } from './util';
+import { debug, debugLoad, error, info } from './logger';
 
 /**
  * Restores the guild configuration
@@ -73,22 +74,50 @@ export const loadRoles = (guild: Guild, backupData: BackupData): Promise<Role[]>
  * Restore the guild channels
  */
 export const loadChannels = (guild: Guild, backupData: BackupData, options: LoadOptions): Promise<unknown[]> => {
+    debugLoad(`Début du chargement des canaux pour le serveur ${guild.name}`);
+    debugLoad(`Nombre de catégories: ${backupData.channels.categories.length}, Nombre de canaux hors catégorie: ${backupData.channels.others.length}`);
+    debugLoad(`Options: ${JSON.stringify(options)}`);
+    
     const loadChannelPromises: Promise<void | unknown>[] = [];
+    
+    // Charger les catégories et leurs canaux enfants
     backupData.channels.categories.forEach((categoryData) => {
+        debugLoad(`Chargement de la catégorie: ${categoryData.name}`);
         loadChannelPromises.push(
             new Promise((resolve) => {
                 loadCategory(categoryData, guild).then((createdCategory) => {
+                    debugLoad(`Catégorie créée: ${categoryData.name}, Nombre de canaux enfants: ${categoryData.children.length}`);
+                    
+                    // Créer un tableau de promesses pour les canaux enfants
+                    const childPromises: Promise<void | unknown>[] = [];
+                    
                     categoryData.children.forEach((channelData) => {
-                        loadChannel(channelData, guild, createdCategory, options);
-                        resolve(true);
+                        debugLoad(`Chargement du canal enfant: ${channelData.name} dans la catégorie ${categoryData.name}`);
+                        childPromises.push(loadChannel(channelData, guild, createdCategory, options));
                     });
+                    
+                    // Attendre que tous les canaux enfants soient chargés avant de résoudre la promesse
+                    Promise.all(childPromises)
+                        .then(() => {
+                            debugLoad(`Tous les canaux enfants de la catégorie ${categoryData.name} ont été chargés`);
+                            resolve(true);
+                        })
+                        .catch((err) => {
+                            error(`Erreur lors du chargement des canaux enfants de la catégorie ${categoryData.name}:`, err);
+                            resolve(false);
+                        });
                 });
             })
         );
     });
+    
+    // Charger les canaux hors catégorie
     backupData.channels.others.forEach((channelData) => {
+        debugLoad(`Chargement du canal hors catégorie: ${channelData.name}`);
         loadChannelPromises.push(loadChannel(channelData, guild, null, options));
     });
+    
+    debugLoad(`Nombre total de promesses de chargement de canaux: ${loadChannelPromises.length}`);
     return Promise.all(loadChannelPromises);
 };
 

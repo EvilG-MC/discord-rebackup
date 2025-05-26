@@ -10,6 +10,7 @@ import { writeFile, readdir } from 'fs/promises';
 import * as createMaster from './create';
 import * as loadMaster from './load';
 import * as utilMaster from './util';
+import { enableDevMode, disableDevMode, info } from './logger';
 
 let backups = process.cwd() + "/backups";
 if (!existsSync(backups)) {
@@ -173,15 +174,23 @@ export const load = async (
     guild: Guild,
     options: LoadOptions = {
         clearGuildBeforeRestore: true,
-        maxMessagesPerChannel: 10
+        maxMessagesPerChannel: 100, // Augmentation de la valeur par défaut à 100 messages
+        devMode: false // Mode développeur désactivé par défaut
     }
 ) => {
     return new Promise(async (resolve, reject) => {
+        // Activer le mode développeur si l'option est définie
+        if (options.devMode) {
+            enableDevMode();
+        } else {
+            disableDevMode();
+        }
+        
         // Activer le mode selfbot si l'option est définie
         if (options.selfBot) {
             const { enableSelfbotMode } = require('./util');
             enableSelfbotMode();
-            console.log('Mode selfbot activé pour le chargement de la sauvegarde');
+            info('Mode selfbot activé');
         }
         
         if (!guild) {

@@ -181,7 +181,6 @@ export async function getChannels(guild: InstanceType<GuildType>, options: Creat
             for (const child of children) {
                 // Typage explicite pour éviter les erreurs
                 const typedChild = child as any;
-                console.log(typedChild.name, typedChild.type)
 
                 if (
                     typedChild.type === ChannelType.GuildText
@@ -230,7 +229,6 @@ export async function getChannels(guild: InstanceType<GuildType>, options: Creat
         for (const channel of others) {
             // Typage explicite pour éviter les erreurs
             const typedChannel = channel as any;
-            console.log(typedChannel.name, typedChannel.type)
             if (
                 typedChannel.type === ChannelType.GuildText
                 || typedChannel.type === ChannelType.GuildAnnouncement

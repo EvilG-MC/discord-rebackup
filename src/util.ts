@@ -8,6 +8,7 @@ import type {
     ThreadChannelData,
     VoiceChannelData
 } from './types';
+import { debug, debugLoad, error, info, warn } from './logger';
 
 // Support pour discord.js v14 et discord.js-selfbot-v13
 let ChannelType: any;
@@ -27,19 +28,17 @@ try {
     ChannelType = discordjs.ChannelType;
     OverwriteType = discordjs.OverwriteType;
     GuildPremiumTier = discordjs.GuildPremiumTier;
-    
+
     // Essayer d'importer discord.js-selfbot-v13 aussi
     try {
         discordjsSelfbot = require('discord.js-selfbot-v13');
-    } catch (e) {
-        console.log('discord.js-selfbot-v13 n\'est pas disponible, utilisation de discord.js uniquement');
-    }
+    } catch (e) { }
 } catch (e) {
     // Si discord.js n'est pas disponible, utiliser discord.js-selfbot-v13 par défaut
     try {
         discordjsSelfbot = require('discord.js-selfbot-v13');
         isSelfbotMode = true;
-        
+
         // Définir les constantes pour la compatibilité
         ChannelType = {
             GuildText: 'GUILD_TEXT',
@@ -70,10 +69,8 @@ try {
 export function enableSelfbotMode() {
     if (discordjsSelfbot) {
         isSelfbotMode = true;
-        console.log('Mode selfbot activé');
         return true;
     } else {
-        console.log('discord.js-selfbot-v13 n\'est pas disponible, impossible d\'activer le mode selfbot');
         return false;
     }
 }
@@ -82,10 +79,8 @@ export function enableSelfbotMode() {
 export function disableSelfbotMode() {
     if (discordjs) {
         isSelfbotMode = false;
-        console.log('Mode selfbot désactivé');
         return true;
     } else {
-        console.log('discord.js n\'est pas disponible, impossible de désactiver le mode selfbot');
         return false;
     }
 }
@@ -315,22 +310,20 @@ export async function loadCategory(categoryData: CategoryData, guild: InstanceTy
     return new Promise<InstanceType<CategoryChannelType>>((resolve) => {
         // Vérifier si nous sommes en mode selfbot
         let categoryPromise: Promise<any>;
-        
+
         if (isSelfbotMode && discordjsSelfbot) {
             // Utiliser discord.js-selfbot-v13 directement
-            console.log('Création de catégorie en mode selfbot');
             categoryPromise = (guild.channels as any).create(categoryData.name, {
                 type: 'GUILD_CATEGORY'
             });
         } else {
             // discord.js v14
-            console.log('Création de catégorie en mode normal');
             categoryPromise = (guild.channels as any).create({
                 name: categoryData.name,
                 type: ChannelType.GuildCategory
             });
         }
-        
+
         categoryPromise.then(async (category: any) => {
             // When the category is created
             const finalPermissions: OverwriteDataType[] = categoryData.permissions.map((perm: any) => {
@@ -360,85 +353,141 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
             return new Promise<InstanceType<WebhookType> | void>(async (resolve) => {
                 // Vérifier si le canal est un thread ou un canal de texte
                 let webhook: InstanceType<WebhookType> | null = previousWebhook || null;
+                debug(`Canal: ${channel.name}, Est un thread: ${(channel as any).isThread}, Peut récupérer webhooks: ${!!(channel as any).fetchWebhooks}`);
+                debug(`Mode selfbot: ${isSelfbotMode}, Discord.js-selfbot-v13 disponible: ${!!discordjsSelfbot}`);
+
+                // Vérifier si le canal est un thread en appelant la fonction isThread si elle existe
+                const isThreadChannel = typeof (channel as any).isThread === 'function' ? (channel as any).isThread() : (channel as any).isThread;
+                debug(`Vérification si ${channel.name} est un thread: ${isThreadChannel}`);
                 
-                if (!webhook && !(channel as any).isThread && (channel as any).fetchWebhooks) {
+                if (!webhook && !isThreadChannel && (channel as any).fetchWebhooks) {
                     try {
+                        debug(`Tentative de récupération des webhooks pour le canal ${channel.name}`);
                         const webhooks = await (channel as InstanceType<TextChannelType>).fetchWebhooks();
+                        debug(`Webhooks récupérés: ${webhooks.size}`);
                         webhook = webhooks.find((w: any) => w.name === 'MessagesBackup') || null;
-                    } catch (error) {
-                        console.error('Erreur lors de la récupération des webhooks:', error);
+                        debug(`Webhook MessagesBackup trouvé: ${!!webhook}`);
+                    } catch (err) {
+                        error('Erreur lors de la récupération des webhooks:', err);
                     }
                 }
-                
-                if (!webhook && !(channel as any).isThread && (channel as any).createWebhook) {
+
+                if (!webhook && !isThreadChannel && (channel as any).createWebhook) {
                     try {
-                        webhook = await (channel as any).createWebhook({
-                        name: 'MessagesBackup',
-                        avatar: channel.client.user.displayAvatarURL()
-                        }).catch((): null => null);
-                    } catch (error) {
-                        console.error('Erreur lors de la création du webhook:', error);
+                        debug(`Tentative de création d'un webhook pour le canal ${channel.name}`);
+                        if (isSelfbotMode && discordjsSelfbot) {
+                            // discord.js-selfbot-v13
+                            debug(`Création d'un webhook en mode selfbot`);
+                            webhook = await (channel as any).createWebhook('MessagesBackup', {
+                                avatar: channel.client.user.displayAvatarURL()
+                            }).catch((err: any): null => {
+                                error('Erreur lors de la création du webhook en mode selfbot:', err);
+                                return null;
+                            });
+                        } else {
+                            // discord.js v14
+                            debug(`Création d'un webhook en mode normal`);
+                            webhook = await (channel as any).createWebhook({
+                                name: 'MessagesBackup',
+                                avatar: channel.client.user.displayAvatarURL()
+                            }).catch((err: any): null => {
+                                error('Erreur lors de la création du webhook en mode normal:', err);
+                                return null;
+                            });
+                        }
+                        debug(`Webhook créé avec succès: ${!!webhook}`);
+                    } catch (err) {
+                        error('Erreur lors de la création du webhook:', err);
                     }
                 }
                 if (!webhook) {
-                    console.log('Aucun webhook disponible pour envoyer les messages');
+                    debug(`Aucun webhook disponible pour le canal ${channel.name}, impossible d'envoyer les messages`);
                     return resolve(undefined);
                 }
+                debug(`Webhook disponible pour le canal ${channel.name}, prêt à envoyer ${messages.length} messages`);
+                // Filtrer les messages vides
                 messages = messages
                     .filter((m) => m.content.length > 0 || m.embeds.length > 0 || m.files.length > 0)
                     .reverse();
-                messages = messages.slice(messages.length - options.maxMessagesPerChannel);
+                
+                // Si maxMessagesPerChannel est défini et n'est pas -1 (valeur spéciale pour "tous les messages")
+                if (options.maxMessagesPerChannel && options.maxMessagesPerChannel !== -1) {
+                    debug(`Limitation à ${options.maxMessagesPerChannel} messages pour le canal ${channel.name}`);
+                    messages = messages.slice(messages.length - options.maxMessagesPerChannel);
+                } else if (options.maxMessagesPerChannel === -1) {
+                    debug(`Restauration de tous les ${messages.length} messages pour le canal ${channel.name}`);
+                }
                 for (const msg of messages) {
-                    // Gestion des pièces jointes compatible avec les deux versions
-                    const buffer = await fetch(msg.files[0].attachment)
-                        .then((res) => (res as any).buffer());
-                    // Créer l'attachment en fonction de la version disponible
-                    let attachment;
                     try {
-                        // discord.js v14
-                        const { AttachmentBuilder } = require('discord.js');
-                        attachment = new AttachmentBuilder(buffer, { name: msg.files[0].name });
-                    } catch {
-                        // discord.js-selfbot-v13
-                        attachment = { attachment: buffer, name: msg.files[0].name };
-                    }
-                    const sentMsg = await webhook
-                        .send({
+                        // Préparer les options de base pour l'envoi du message
+                        const messageOptions: any = {
                             content: msg.content.length ? msg.content : undefined,
                             username: msg.username,
                             avatarURL: msg.avatar,
                             embeds: msg.embeds,
-                            files: [attachment],
-                            allowedMentions: options.allowedMentions,
-                            threadId: channel.isThread() ? channel.id : undefined
-                        })
-                        .catch((err: any) => {
-                            console.log(err);
-                            resolve(undefined);
-                        });
-                    if (msg.pinned && sentMsg) await (sentMsg as InstanceType<MessageType>).pin();
+                            allowedMentions: options.allowedMentions
+                        };
+                        
+                        // Ajouter les pièces jointes si présentes
+                        if (msg.files && msg.files.length > 0) {
+                            try {
+                                // Gestion des pièces jointes compatible avec les deux versions
+                                const buffer = await fetch(msg.files[0].attachment)
+                                    .then((res) => (res as any).buffer())
+                                    .catch((error): null => {
+                                        console.error('Erreur lors du téléchargement de la pièce jointe:', error);
+                                        return null;
+                                    });
+                                
+                                if (buffer) {
+                                    // Créer l'attachment en fonction de la version disponible
+                                    if (isSelfbotMode && discordjsSelfbot) {
+                                        // discord.js-selfbot-v13
+                                        messageOptions.files = [{ attachment: buffer, name: msg.files[0].name }];
+                                    } else {
+                                        // discord.js v14
+                                        const { AttachmentBuilder } = require('discord.js');
+                                        messageOptions.files = [new AttachmentBuilder(buffer, { name: msg.files[0].name })];
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Erreur lors de la préparation de la pièce jointe:', error);
+                            }
+                        }
+                        
+                        // Envoyer le message via le webhook
+                        debug(`Tentative d'envoi d'un message via webhook dans le canal ${channel.name}`);
+                        debug(`Options du message:`, JSON.stringify(messageOptions, null, 2));
+                        const sentMsg = await webhook.send(messageOptions)
+                            .then((msg: any) => {
+                                debug(`Message envoyé avec succès via webhook dans le canal ${channel.name}`);
+                                return msg;
+                            })
+                            .catch((err: any) => {
+                                error(`Erreur lors de l'envoi du message via webhook:`, err);
+                                resolve(undefined);
+                            });
+                        if (msg.pinned && sentMsg) await (sentMsg as InstanceType<MessageType>).pin();
+                    } catch (error) {
+                        console.error('Erreur lors de l\'envoi du message:', error);
+                    }
                 }
                 resolve(webhook);
             });
         }
         // Create the channel
         let channel: InstanceType<TextChannelType> | InstanceType<ThreadChannelType> | InstanceType<VoiceChannelType> | null = null;
-        
-        // Détecter quelle version de discord.js est utilisée
-        const isV14 = typeof ChannelType === 'object' && typeof ChannelType.GuildCategory === 'number';
-        // Les options de création sont maintenant gérées dans les sections spécifiques à chaque version
-        // Nous n'avons plus besoin de cette partie du code
+
         // Préparer les options de création de canal en fonction du mode
         let channelPromise: Promise<any>;
-        
+
         if (isSelfbotMode && discordjsSelfbot) {
             // Mode selfbot avec discord.js-selfbot-v13
-            console.log('Création de canal en mode selfbot');
-            
+
             // Déterminer le type de canal pour discord.js-selfbot-v13
             let channelType = 'GUILD_TEXT';
             const channelTypeStr = String(channelData.type);
-            
+
             if (channelTypeStr === String(ChannelType.GuildVoice) || channelTypeStr === 'GUILD_VOICE') {
                 channelType = 'GUILD_VOICE';
             } else if (channelTypeStr === String(ChannelType.GuildAnnouncement) || channelTypeStr === 'GUILD_NEWS') {
@@ -446,17 +495,17 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
             } else if (channelTypeStr === String(ChannelType.GuildStageVoice) || channelTypeStr === 'GUILD_STAGE_VOICE') {
                 channelType = 'GUILD_STAGE_VOICE';
             }
-            
+
             // Créer les options pour discord.js-selfbot-v13
             const createOptions: any = {
                 type: channelType
             };
-            
+
             // Ajouter le parent si disponible
             if (category) {
                 createOptions.parent = category.id;
             }
-            
+
             // Ajouter les options spécifiques au type de canal
             if (channelType === 'GUILD_TEXT' || channelType === 'GUILD_NEWS') {
                 if ((channelData as TextChannelData).topic) {
@@ -482,18 +531,16 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
                     createOptions.userLimit = (channelData as VoiceChannelData).userLimit;
                 }
             }
-            
-            console.log('Création de canal avec options (selfbot):', JSON.stringify(createOptions));
+
             channelPromise = (guild.channels as any).create(channelData.name, createOptions);
         } else {
             // Mode normal avec discord.js v14
-            console.log('Création de canal en mode normal');
-            
+
             const createOptions: any = {
                 name: channelData.name,
                 parent: category
             };
-            
+
             // Définir le type de canal pour discord.js v14
             const channelTypeStr = String(channelData.type);
             if (channelTypeStr === String(ChannelType.GuildText) || channelTypeStr === 'GUILD_TEXT') {
@@ -505,7 +552,7 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
             } else if (channelTypeStr === String(ChannelType.GuildStageVoice) || channelTypeStr === 'GUILD_STAGE_VOICE') {
                 createOptions.type = ChannelType.GuildStageVoice;
             }
-            
+
             // Ajouter les options spécifiques au type de canal
             if (channelTypeStr === String(ChannelType.GuildText) || channelTypeStr === 'GUILD_TEXT' ||
                 channelTypeStr === String(ChannelType.GuildAnnouncement) || channelTypeStr === 'GUILD_NEWS' ||
@@ -526,11 +573,10 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
                 createOptions.bitrate = bitrate;
                 createOptions.userLimit = (channelData as VoiceChannelData).userLimit;
             }
-            
-            console.log('Création de canal avec options (v14):', JSON.stringify(createOptions));
+
             channelPromise = (guild.channels as any).create(createOptions);
         }
-        
+
         channelPromise.then(async (channel: any) => {
             /* Update channel permissions */
             const finalPermissions: OverwriteDataType[] = channelData.permissions.map((perm: any) => {
@@ -545,39 +591,54 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
                 } else return null;
             }).filter((perm: any) => perm !== null);
             await channel.permissionOverwrites.set(finalPermissions);
-            if (channelData.type === ChannelType.GuildText) {
+            if (channelData.type === ChannelType.GuildText || String(channelData.type) === 'GUILD_TEXT') {
                 /* Load messages */
                 let webhook: InstanceType<WebhookType> | void;
-                if ((channelData as TextChannelData).messages.length > 0) {
-                    webhook = await loadMessages(channel as InstanceType<TextChannelType>, (channelData as TextChannelData).messages).catch(() => { });
+                debug(`Canal de type texte détecté: ${channel.name}, Type: ${channelData.type}`);
+                
+                // Vérifier si le canal a des messages
+                if ((channelData as TextChannelData).messages && (channelData as TextChannelData).messages.length > 0) {
+                    debug(`Le canal ${channel.name} a ${(channelData as TextChannelData).messages.length} messages à charger`);
+                    debug(`Premier message: ${JSON.stringify((channelData as TextChannelData).messages[0], null, 2)}`);
+                    
+                    try {
+                        webhook = await loadMessages(channel as InstanceType<TextChannelType>, (channelData as TextChannelData).messages);
+                        debug(`Messages chargés avec succès dans le canal ${channel.name}, Webhook créé: ${!!webhook}`);
+                    } catch (err) {
+                        error(`Erreur lors du chargement des messages dans le canal ${channel.name}:`, err);
+                    }
+                } else {
+                    debug(`Le canal ${channel.name} n'a pas de messages à charger ou la propriété messages est manquante`);
+                    debug(`Propriétés du canal: ${JSON.stringify(channelData, null, 2)}`);
+
                 }
                 const loadThreadMessages = async (): Promise<void> => {
                     if ((channelData as TextChannelData).threads && (channelData as TextChannelData).threads.length > 0) {
                         // Vérifier si le canal a la propriété threads
                         if (!(channel as any).threads) {
-                            console.log('Le canal ne supporte pas les threads');
+                            debug('Le canal ne supporte pas les threads');
                             return;
                         }
-                        
+
                         await Promise.all((channelData as TextChannelData).threads.map(async (threadData) => {
                             let autoArchiveDuration = threadData.autoArchiveDuration;
                             //if (!guild.features.includes('SEVEN_DAY_THREAD_ARCHIVE') && autoArchiveDuration === 10080) autoArchiveDuration = 4320;
                             //if (!guild.features.includes('THREE_DAY_THREAD_ARCHIVE') && autoArchiveDuration === 4320) autoArchiveDuration = 1440;
-                            
+
                             try {
                                 // Vérifier si le thread existe déjà
-                                const existingThread = (channel as any).threads && (channel as any).threads.cache ? 
+                                const existingThread = (channel as any).threads && (channel as any).threads.cache ?
                                     (channel as any).threads.cache.find((t: any) => t.name === threadData.name) : null;
-                                    
+
                                 if (existingThread) {
                                     await loadMessages(existingThread, threadData.messages, webhook);
                                 } else if ((channel as any).threads && (channel as any).threads.create) {
                                     // Créer un nouveau thread
                                     const newThread = await (channel as any).threads.create({
-                                    name: threadData.name,
-                                    autoArchiveDuration
-                                });
-                                await loadMessages(newThread, threadData.messages, webhook);
+                                        name: threadData.name,
+                                        autoArchiveDuration
+                                    });
+                                    await loadMessages(newThread, threadData.messages, webhook);
                                 }
                             } catch (error) {
                                 console.error('Erreur lors de la création ou du chargement du thread:', error);

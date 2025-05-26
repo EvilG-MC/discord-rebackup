@@ -7,4 +7,5 @@ export interface CreateOptions {
     backupMembers?: boolean;
     saveImages?: string;
     selfBot?: boolean;
+    devMode?: boolean; // Activer/désactiver les logs de débogage
 }

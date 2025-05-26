@@ -76,93 +76,186 @@ export const create = async (
     }
 ) => {
     return new Promise<BackupData>(async (resolve, reject) => {
-
         if (!options.selfBot && !guild.client.options.intents.has(IntentsBitField.Flags.Guilds)) return reject('Guilds intent is required');
 
         // Activer le mode selfbot si l'option est définie
         if (options.selfBot) {
-            const { enableSelfbotMode } = require('./util');
-            enableSelfbotMode();
+            try {
+                const { enableSelfbotMode } = require('./util');
+                enableSelfbotMode();
+            } catch (selfbotError) {
+                console.error(`Erreur lors de l'activation du mode selfbot: ${selfbotError}`);
+                // On continue même si le mode selfbot n'a pas pu être activé
+            }
         }
 
+        // Initialisation des données de backup avec des valeurs par défaut
+        const backupData: BackupData = {
+            name: 'Unknown Server',
+            verificationLevel: 0,
+            explicitContentFilter: 0,
+            defaultMessageNotifications: 0,
+            afk: null,
+            widget: {
+                enabled: false,
+                channel: null
+            },
+            channels: { categories: [], others: [] },
+            roles: [],
+            bans: [],
+            emojis: [],
+            members: [],
+            createdTimestamp: Date.now(),
+            guildID: '',
+            id: options.backupID ?? SnowflakeUtil.generate().toString()
+        };
+
+        // Récupération des informations de base du serveur
         try {
-            const backupData: BackupData = {
-                name: guild.name,
-                verificationLevel: guild.verificationLevel,
-                explicitContentFilter: guild.explicitContentFilter,
-                defaultMessageNotifications: guild.defaultMessageNotifications,
-                afk: guild.afkChannel ? { name: guild.afkChannel.name, timeout: guild.afkTimeout } : null,
-                widget: {
+            backupData.name = guild.name || 'Unknown Server';
+            backupData.verificationLevel = guild.verificationLevel;
+            backupData.explicitContentFilter = guild.explicitContentFilter;
+            backupData.defaultMessageNotifications = guild.defaultMessageNotifications;
+            backupData.guildID = guild.id;
+            
+            // Récupération des informations AFK
+            if (guild.afkChannel) {
+                backupData.afk = { 
+                    name: guild.afkChannel.name, 
+                    timeout: guild.afkTimeout 
+                };
+            }
+            
+            // Récupération des informations du widget
+            try {
+                backupData.widget = {
                     enabled: guild.widgetEnabled || false,
                     channel: guild.widgetChannel ? guild.widgetChannel.name : null
-                },
-                channels: { categories: [], others: [] },
-                roles: [],
-                bans: [],
-                emojis: [],
-                members: [],
-                createdTimestamp: Date.now(),
-                guildID: guild.id,
-                id: options.backupID ?? SnowflakeUtil.generate().toString()
-            };
+                };
+            } catch (widgetError) {
+                console.error(`Erreur lors de la récupération des informations du widget: ${widgetError}`);
+                // On continue avec les valeurs par défaut
+            }
+        } catch (basicInfoError) {
+            console.error(`Erreur lors de la récupération des informations de base du serveur: ${basicInfoError}`);
+            // On continue avec les valeurs par défaut
+        }
 
+        // Récupération des images du serveur
+        try {
             if (guild.icon) {
-                if (options && options.saveImages && options.saveImages === 'base64') {
-                    backupData.iconBase64 = (
-                        await fetch(guild.icon).then((res) => (res as any).buffer())
-                    ).toString('base64');
-                }
                 backupData.iconURL = guild.icon;
+                if (options && options.saveImages && options.saveImages === 'base64') {
+                    try {
+                        const iconResponse = await fetch(guild.icon);
+                        const iconBuffer = await (iconResponse as any).buffer();
+                        backupData.iconBase64 = iconBuffer.toString('base64');
+                    } catch (iconError) {
+                        console.error(`Erreur lors de la récupération de l'icône du serveur: ${iconError}`);
+                        // On continue sans l'icône en base64
+                    }
+                }
             }
+            
             if (guild.splash) {
-                if (options && options.saveImages && options.saveImages === 'base64') {
-                    backupData.splashBase64 = (await fetch(guild.splash).then((res) => (res as any).buffer())).toString(
-                        'base64'
-                    );
-                }
                 backupData.splashURL = guild.splash;
-            }
-            if (guild.banner) {
                 if (options && options.saveImages && options.saveImages === 'base64') {
-                    backupData.bannerBase64 = (await fetch(guild.banner).then((res) => (res as any).buffer())).toString(
-                        'base64'
-                    );
+                    try {
+                        const splashResponse = await fetch(guild.splash);
+                        const splashBuffer = await (splashResponse as any).buffer();
+                        backupData.splashBase64 = splashBuffer.toString('base64');
+                    } catch (splashError) {
+                        console.error(`Erreur lors de la récupération du splash du serveur: ${splashError}`);
+                        // On continue sans le splash en base64
+                    }
                 }
+            }
+            
+            if (guild.banner) {
                 backupData.bannerURL = guild.banner;
+                if (options && options.saveImages && options.saveImages === 'base64') {
+                    try {
+                        const bannerResponse = await fetch(guild.banner);
+                        const bannerBuffer = await (bannerResponse as any).buffer();
+                        backupData.bannerBase64 = bannerBuffer.toString('base64');
+                    } catch (bannerError) {
+                        console.error(`Erreur lors de la récupération de la bannière du serveur: ${bannerError}`);
+                        // On continue sans la bannière en base64
+                    }
+                }
             }
-            if (options && options.backupMembers) {
-                // Backup members
+        } catch (imageError) {
+            console.error(`Erreur lors de la récupération des images du serveur: ${imageError}`);
+            // On continue sans les images
+        }
+
+        // Backup des membres si demandé
+        if (options && options.backupMembers) {
+            try {
                 backupData.members = await createMaster.getMembers(guild);
+            } catch (membersError) {
+                console.error(`Erreur lors de la récupération des membres: ${membersError}`);
+                // On continue avec un tableau vide
             }
-            if (!options || !(options.doNotBackup || []).includes('bans')) {
-                // Backup bans
+        }
+
+        // Backup des bans si non exclu
+        if (!options || !(options.doNotBackup || []).includes('bans')) {
+            try {
                 backupData.bans = await createMaster.getBans(guild);
+            } catch (bansError) {
+                console.error(`Erreur lors de la récupération des bans: ${bansError}`);
+                // On continue avec un tableau vide
             }
-            if (!options || !(options.doNotBackup || []).includes('roles')) {
-                // Backup roles
+        }
+
+        // Backup des rôles si non exclu
+        if (!options || !(options.doNotBackup || []).includes('roles')) {
+            try {
                 backupData.roles = await createMaster.getRoles(guild);
+            } catch (rolesError) {
+                console.error(`Erreur lors de la récupération des rôles: ${rolesError}`);
+                // On continue avec un tableau vide
             }
-            if (!options || !(options.doNotBackup || []).includes('emojis')) {
-                // Backup emojis
+        }
+
+        // Backup des emojis si non exclu
+        if (!options || !(options.doNotBackup || []).includes('emojis')) {
+            try {
                 backupData.emojis = await createMaster.getEmojis(guild, options);
+            } catch (emojisError) {
+                console.error(`Erreur lors de la récupération des emojis: ${emojisError}`);
+                // On continue avec un tableau vide
             }
-            if (!options || !(options.doNotBackup || []).includes('channels')) {
-                // Backup channels
+        }
+
+        // Backup des canaux si non exclu
+        if (!options || !(options.doNotBackup || []).includes('channels')) {
+            try {
                 backupData.channels = await createMaster.getChannels(guild, options);
+            } catch (channelsError) {
+                console.error(`Erreur lors de la récupération des canaux: ${channelsError}`);
+                // On continue avec des tableaux vides
             }
-            if (!options || options.jsonSave === undefined || options.jsonSave) {
+        }
+
+        // Sauvegarde du backup en JSON si demandé
+        if (!options || options.jsonSave === undefined || options.jsonSave) {
+            try {
                 // Convert Object to JSON
                 const backupJSON = options.jsonBeautify
                     ? JSON.stringify(backupData, null, 4)
                     : JSON.stringify(backupData);
                 // Save the backup
                 await writeFile(`${backups}${sep}${backupData.id}.json`, backupJSON, 'utf-8');
+            } catch (saveError) {
+                console.error(`Erreur lors de la sauvegarde du backup: ${saveError}`);
+                // On continue et on retourne quand même les données
             }
-            // Returns ID
-            resolve(backupData);
-        } catch (e) {
-            return reject(e);
         }
+        
+        // Retourne les données même si certaines parties ont échoué
+        resolve(backupData);
     });
 };
 

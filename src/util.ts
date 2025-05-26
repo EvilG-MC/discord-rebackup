@@ -148,20 +148,43 @@ const MaxBitratePerTier: Record<number, number> = {
  */
 export function fetchChannelPermissions(channel: InstanceType<TextChannelType> | InstanceType<VoiceChannelType> | InstanceType<CategoryChannelType> | InstanceType<NewsChannelType> | InstanceType<StageChannelType>) {
     const permissions: ChannelPermissionsData[] = [];
-    const typedChannel = channel as any;
-    typedChannel.permissionOverwrites.cache
-        .filter((p: any) => p.type === OverwriteType.Role || p.type === 'role')
-        .forEach((perm: any) => {
-            // For each overwrites permission
-            const role = typedChannel.guild.roles.cache.get(perm.id);
-            if (role) {
-                permissions.push({
-                    roleName: role.name,
-                    allow: perm.allow.bitfield.toString(),
-                    deny: perm.deny.bitfield.toString()
-                });
-            }
-        });
+    try {
+        const typedChannel = channel as any;
+        
+        // Vérifier si permissionOverwrites existe et a une propriété cache
+        if (!typedChannel.permissionOverwrites || !typedChannel.permissionOverwrites.cache) {
+            console.error(`Le canal ${typedChannel.name || typedChannel.id || 'inconnu'} n'a pas de permissionOverwrites valides`);
+            return permissions;
+        }
+        
+        typedChannel.permissionOverwrites.cache
+            .filter((p: any) => p.type === OverwriteType.Role || p.type === 'role')
+            .forEach((perm: any) => {
+                try {
+                    // For each overwrites permission
+                    if (!typedChannel.guild || !typedChannel.guild.roles || !typedChannel.guild.roles.cache) {
+                        return; // Skip if guild or roles cache is not available
+                    }
+                    
+                    const role = typedChannel.guild.roles.cache.get(perm.id);
+                    if (role) {
+                        // Vérifier si perm.allow et perm.deny existent et ont une propriété bitfield
+                        const allowBitfield = perm.allow && perm.allow.bitfield ? perm.allow.bitfield.toString() : '0';
+                        const denyBitfield = perm.deny && perm.deny.bitfield ? perm.deny.bitfield.toString() : '0';
+                        
+                        permissions.push({
+                            roleName: role.name,
+                            allow: allowBitfield,
+                            deny: denyBitfield
+                        });
+                    }
+                } catch (permError) {
+                    console.error(`Erreur lors de la récupération des permissions pour le rôle ${perm?.id || 'inconnu'}: ${permError}`);
+                }
+            });
+    } catch (error) {
+        console.error(`Erreur lors de la récupération des permissions du canal: ${error}`);
+    }
     return permissions;
 }
 

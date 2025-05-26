@@ -73,53 +73,102 @@ export async function getBans(guild: InstanceType<GuildType>): Promise<BanData[]
 
 export async function getMembers(guild: InstanceType<GuildType>): Promise<MemberData[]> {
     const members: MemberData[] = [];
-    guild.members.cache.forEach((member: any) => {
-        members.push({
-            userId: member.user.id,
-            username: member.user.username,
-            discriminator: member.user.discriminator,
-            avatarUrl: member.user.avatarURL(),
-            joinedTimestamp: member.joinedTimestamp,
-            roles: member.roles.cache.map((role: any) => role.id),
-            bot: member.user.bot
+    try {
+        guild.members.cache.forEach((member: any) => {
+            try {
+                members.push({
+                    userId: member.user.id,
+                    username: member.user.username,
+                    discriminator: member.user.discriminator,
+                    avatarUrl: member.user.avatarURL(),
+                    joinedTimestamp: member.joinedTimestamp,
+                    roles: member.roles?.cache?.map((role: any) => role.id) || [],
+                    bot: member.user.bot
+                });
+            } catch (error) {
+                // Si une erreur se produit pour un membre spécifique, on continue avec les autres
+                console.error(`Erreur lors de la récupération du membre ${member?.user?.id || 'inconnu'}: ${error}`);
+            }
         });
-    });
+    } catch (error) {
+        // Si une erreur se produit lors de la récupération des membres, on retourne un tableau vide
+        console.error(`Erreur lors de la récupération des membres: ${error}`);
+    }
     return members;
 }
 
 export async function getRoles(guild: InstanceType<GuildType>): Promise<RoleData[]> {
     const roles: RoleData[] = [];
-    guild.roles.cache
-        .filter((role: any) => !role.managed)
-        .sort((a: any, b: any) => b.position - a.position)
-        .forEach((role: any) => {
-            const roleData = {
-                name: role.name,
-                color: role.hexColor,
-                hoist: role.hoist,
-                permissions: role.permissions.bitfield.toString(),
-                mentionable: role.mentionable,
-                position: role.position,
-                isEveryone: guild.id === role.id
-            };
-            roles.push(roleData);
-        });
+    try {
+        guild.roles.cache
+            .filter((role: any) => !role.managed)
+            .sort((a: any, b: any) => b.position - a.position)
+            .forEach((role: any) => {
+                try {
+                    const roleData = {
+                        name: role.name,
+                        color: role.hexColor,
+                        hoist: role.hoist,
+                        permissions: role.permissions?.bitfield?.toString() || '0',
+                        mentionable: role.mentionable,
+                        position: role.position,
+                        isEveryone: guild.id === role.id
+                    };
+                    roles.push(roleData);
+                } catch (error) {
+                    // Si une erreur se produit pour un rôle spécifique, on continue avec les autres
+                    console.error(`Erreur lors de la récupération du rôle ${role?.id || 'inconnu'}: ${error}`);
+                }
+            });
+    } catch (error) {
+        // Si une erreur se produit lors de la récupération des rôles, on retourne un tableau vide
+        console.error(`Erreur lors de la récupération des rôles: ${error}`);
+    }
     return roles;
 }
 
 export async function getEmojis(guild: InstanceType<GuildType>, options: CreateOptions): Promise<EmojiData[]> {
     const emojis: EmojiData[] = [];
-    guild.emojis.cache.forEach(async (emoji: any) => {
-        const eData: EmojiData = {
-            name: emoji.name
-        };
-        if (options.saveImages && options.saveImages === 'base64') {
-            eData.base64 = (await fetch(emoji.url).then((res) => (res as any).buffer())).toString('base64');
-        } else {
-            eData.url = emoji.url;
-        }
-        emojis.push(eData);
-    });
+    try {
+        const promises: Promise<void>[] = [];
+        
+        guild.emojis.cache.forEach((emoji: any) => {
+            const promise = (async () => {
+                try {
+                    const eData: EmojiData = {
+                        name: emoji.name
+                    };
+                    
+                    if (options.saveImages && options.saveImages === 'base64') {
+                        try {
+                            const response = await fetch(emoji.url);
+                            const buffer = await (response as any).buffer();
+                            eData.base64 = buffer.toString('base64');
+                        } catch (fetchError) {
+                            // Si l'image ne peut pas être récupérée, on utilise l'URL à la place
+                            console.error(`Erreur lors de la récupération de l'image de l'emoji ${emoji.name}: ${fetchError}`);
+                            eData.url = emoji.url;
+                        }
+                    } else {
+                        eData.url = emoji.url;
+                    }
+                    
+                    emojis.push(eData);
+                } catch (emojiError) {
+                    // Si une erreur se produit pour un emoji spécifique, on continue avec les autres
+                    console.error(`Erreur lors de la récupération de l'emoji ${emoji?.name || 'inconnu'}: ${emojiError}`);
+                }
+            })();
+            
+            promises.push(promise);
+        });
+        
+        // Attendre que toutes les promesses soient résolues
+        await Promise.all(promises);
+    } catch (error) {
+        // Si une erreur se produit lors de la récupération des emojis, on retourne un tableau vide
+        console.error(`Erreur lors de la récupération des emojis: ${error}`);
+    }
 
     return emojis;
 }

@@ -63,7 +63,6 @@ export async function getBans(guild: InstanceType<GuildType>): Promise<BanData[]
             });
         });
     } catch (error) {
-        console.error('Error fetching bans:', error);
         // If the bot doesn't have the permission to see the bans
         // It will throw an error, so we catch it and return an empty array
         return [];
@@ -175,7 +174,6 @@ export async function getChannels(guild: InstanceType<GuildType>, options: Creat
                     return a.position - b.position;
                 });
             } catch (error) {
-                console.error('Erreur lors de la récupération des canaux enfants:', error);
                 children = [];
             }
             for (const child of children) {

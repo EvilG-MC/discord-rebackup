@@ -60,7 +60,6 @@ try {
             Tier3: 'TIER_3'
         };
     } catch (e) {
-        console.error('Aucune bibliothèque Discord.js n\'est disponible');
         throw new Error('Aucune bibliothèque Discord.js n\'est disponible');
     }
 }
@@ -285,7 +284,6 @@ export async function fetchTextChannelData(channel: InstanceType<TextChannelType
                     /* Return thread data */
                     channelData.threads.push(threadData);
                 } catch (error) {
-                    console.error('Error fetching thread messages:', error);
                     channelData.threads.push(threadData);
                 }
             }));
@@ -297,7 +295,6 @@ export async function fetchTextChannelData(channel: InstanceType<TextChannelType
             /* Return channel data */
             resolve(channelData);
         } catch (error) {
-            console.error('Error fetching channel messages:', error);
             resolve(channelData);
         }
     });
@@ -435,7 +432,6 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
                                 const buffer = await fetch(msg.files[0].attachment)
                                     .then((res) => (res as any).buffer())
                                     .catch((error): null => {
-                                        console.error('Erreur lors du téléchargement de la pièce jointe:', error);
                                         return null;
                                     });
                                 
@@ -451,7 +447,6 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
                                     }
                                 }
                             } catch (error) {
-                                console.error('Erreur lors de la préparation de la pièce jointe:', error);
                             }
                         }
                         
@@ -469,7 +464,6 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
                             });
                         if (msg.pinned && sentMsg) await (sentMsg as InstanceType<MessageType>).pin();
                     } catch (error) {
-                        console.error('Erreur lors de l\'envoi du message:', error);
                     }
                 }
                 resolve(webhook);
@@ -641,7 +635,6 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
                                     await loadMessages(newThread, threadData.messages, webhook);
                                 }
                             } catch (error) {
-                                console.error('Erreur lors de la création ou du chargement du thread:', error);
                             }
                         }));
                     }

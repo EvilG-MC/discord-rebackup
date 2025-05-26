@@ -1,6 +1,6 @@
 {
   "name": "discord-rebackup",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "An rewamped fork of the discord-backup module ! by the iHorizon Team",
   "main": "lib/index.js",
   "files": [

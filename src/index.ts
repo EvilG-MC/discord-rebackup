@@ -78,6 +78,12 @@ export const create = async (
 
         if (!options.selfBot && !guild.client.options.intents.has(IntentsBitField.Flags.Guilds)) return reject('Guilds intent is required');
 
+        // Activer le mode selfbot si l'option est définie
+        if (options.selfBot) {
+            const { enableSelfbotMode } = require('./util');
+            enableSelfbotMode();
+        }
+
         try {
             const backupData: BackupData = {
                 name: guild.name,
@@ -171,6 +177,13 @@ export const load = async (
     }
 ) => {
     return new Promise(async (resolve, reject) => {
+        // Activer le mode selfbot si l'option est définie
+        if (options.selfBot) {
+            const { enableSelfbotMode } = require('./util');
+            enableSelfbotMode();
+            console.log('Mode selfbot activé pour le chargement de la sauvegarde');
+        }
+        
         if (!guild) {
             return reject('Invalid guild');
         }

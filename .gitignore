@@ -69,3 +69,4 @@ typings/
 # Tests
 /test
 bun.lock
+package-lock.json

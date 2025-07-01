@@ -131,19 +131,18 @@ export async function getEmojis(guild: InstanceType<GuildType>, options: CreateO
     const emojis: EmojiData[] = [];
     try {
         const promises: Promise<void>[] = [];
-        
+
         guild.emojis.cache.forEach((emoji: any) => {
             const promise = (async () => {
                 try {
                     const eData: EmojiData = {
                         name: emoji.name
                     };
-                    
-                    if (options.saveImages && options.saveImages === 'base64') {
+
+                    if (options.saveImages) {
                         try {
-                            const response = await fetch(emoji.url);
-                            const buffer = await (response as any).buffer();
-                            eData.base64 = buffer.toString('base64');
+                            const response = await (await fetch(emoji.url)).arrayBuffer();
+                            eData.base64 = Buffer.from(response).toString('base64');
                         } catch (fetchError) {
                             // Si l'image ne peut pas être récupérée, on utilise l'URL à la place
                             console.error(`Erreur lors de la récupération de l'image de l'emoji ${emoji.name}: ${fetchError}`);
@@ -152,17 +151,17 @@ export async function getEmojis(guild: InstanceType<GuildType>, options: CreateO
                     } else {
                         eData.url = emoji.url;
                     }
-                    
+
                     emojis.push(eData);
                 } catch (emojiError) {
                     // Si une erreur se produit pour un emoji spécifique, on continue avec les autres
                     console.error(`Erreur lors de la récupération de l'emoji ${emoji?.name || 'inconnu'}: ${emojiError}`);
                 }
             })();
-            
+
             promises.push(promise);
         });
-        
+
         // Attendre que toutes les promesses soient résolues
         await Promise.all(promises);
     } catch (error) {
@@ -216,7 +215,7 @@ export async function getChannels(guild: InstanceType<GuildType>, options: Creat
                         .filter((ch: any) => ch.parentId === typedCategory.id || ch.parent?.id === typedCategory.id)
                         .map((ch: any) => ch);
                 }
-                
+
                 // Trier les canaux par position
                 children = children.sort((a: any, b: any) => {
                     if (!a || !b || typeof a.position !== 'number' || typeof b.position !== 'number') return 0;
@@ -261,10 +260,10 @@ export async function getChannels(guild: InstanceType<GuildType>, options: Creat
 
         const others = guild.channels.cache
             .filter((ch: any) => {
-                return !ch.parent && 
+                return !ch.parent &&
                     (ch.type !== ChannelType.GuildCategory && ch.type !== 'GUILD_CATEGORY') &&
-                    (ch.type !== ChannelType.AnnouncementThread && ch.type !== 'ANNOUNCEMENT_THREAD') && 
-                    (ch.type !== ChannelType.PrivateThread && ch.type !== 'PRIVATE_THREAD') && 
+                    (ch.type !== ChannelType.AnnouncementThread && ch.type !== 'ANNOUNCEMENT_THREAD') &&
+                    (ch.type !== ChannelType.PrivateThread && ch.type !== 'PRIVATE_THREAD') &&
                     (ch.type !== ChannelType.PublicThread && ch.type !== 'PUBLIC_THREAD')
             })
             .sort((a: any, b: any) => {

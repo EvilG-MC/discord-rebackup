@@ -40,7 +40,7 @@ const getBackupData = async (backupID: string) => {
 /**
  * Fetches a backup and returns the information about it
  */
-export const fetch = (backupID: string) => {
+export const fetchBackup = (backupID: string) => {
     return new Promise<BackupInfos>(async (resolve, reject) => {
         getBackupData(backupID)
             .then((backupData) => {
@@ -71,7 +71,7 @@ export const create = async (
         jsonBeautify: true,
         doNotBackup: [],
         backupMembers: false,
-        saveImages: '',
+        saveImages: true,
         selfBot: false
     }
 ) => {
@@ -117,15 +117,15 @@ export const create = async (
             backupData.explicitContentFilter = guild.explicitContentFilter;
             backupData.defaultMessageNotifications = guild.defaultMessageNotifications;
             backupData.guildID = guild.id;
-            
+
             // Récupération des informations AFK
             if (guild.afkChannel) {
-                backupData.afk = { 
-                    name: guild.afkChannel.name, 
-                    timeout: guild.afkTimeout 
+                backupData.afk = {
+                    name: guild.afkChannel.name,
+                    timeout: guild.afkTimeout
                 };
             }
-            
+
             // Récupération des informations du widget
             try {
                 backupData.widget = {
@@ -137,7 +137,7 @@ export const create = async (
                 // On continue avec les valeurs par défaut
             }
         } catch (basicInfoError) {
-            console.error(`Erreur lors de la récupération des informations de base du serveur: ${basicInfoError}`);
+            console.error(`Erreur lorsf de la récupération des informations de base du serveur: ${basicInfoError}`);
             // On continue avec les valeurs par défaut
         }
 
@@ -145,39 +145,55 @@ export const create = async (
         try {
             if (guild.icon) {
                 backupData.iconURL = guild.icon;
-                if (options && options.saveImages && options.saveImages === 'base64') {
+
+                if (options && options.saveImages) {
+                    console.log(guild.icon, guild.iconURL())
                     try {
-                        const iconResponse = await fetch(guild.icon);
-                        const iconBuffer = await (iconResponse as any).buffer();
-                        backupData.iconBase64 = iconBuffer.toString('base64');
+                        let icon_url = guild.icon
+                        if ('iconURL' in guild) {
+                            icon_url = guild.iconURL();
+                        }
+
+                        const iconResponse = await fetch(icon_url);
+                        const iconBuffer = await iconResponse.arrayBuffer();
+                        backupData.iconBase64 = Buffer.from(iconBuffer).toString('base64')
                     } catch (iconError) {
                         console.error(`Erreur lors de la récupération de l'icône du serveur: ${iconError}`);
                         // On continue sans l'icône en base64
                     }
                 }
             }
-            
+
             if (guild.splash) {
                 backupData.splashURL = guild.splash;
-                if (options && options.saveImages && options.saveImages === 'base64') {
+                if (options && options.saveImages) {
                     try {
-                        const splashResponse = await fetch(guild.splash);
-                        const splashBuffer = await (splashResponse as any).buffer();
-                        backupData.splashBase64 = splashBuffer.toString('base64');
+                        let splash_url = guild.splash;
+                        if ('splashURL' in guild) {
+                            splash_url = guild.splashURL({ size: 4096, extension: "webp" })
+                        }
+
+                        const splashResponse = await fetch(splash_url);
+                        const splashBuffer = await splashResponse.arrayBuffer();
+                        backupData.splashBase64 = Buffer.from(splashBuffer).toString("base64")
                     } catch (splashError) {
                         console.error(`Erreur lors de la récupération du splash du serveur: ${splashError}`);
                         // On continue sans le splash en base64
                     }
                 }
             }
-            
+
             if (guild.banner) {
                 backupData.bannerURL = guild.banner;
-                if (options && options.saveImages && options.saveImages === 'base64') {
+                if (options && options.saveImages) {
                     try {
-                        const bannerResponse = await fetch(guild.banner);
-                        const bannerBuffer = await (bannerResponse as any).buffer();
-                        backupData.bannerBase64 = bannerBuffer.toString('base64');
+                        let banner_url = guild.banner;
+                        if ('bannerURL' in guild) {
+                            banner_url = guild.bannerURL({ size: 4096, extension: "webp", forceStatic: false })
+                        }
+                        const bannerResponse = await fetch(banner_url);
+                        const bannerBuffer = await bannerResponse.arrayBuffer()
+                        backupData.bannerBase64 = Buffer.from(bannerBuffer).toString("base64")
                     } catch (bannerError) {
                         console.error(`Erreur lors de la récupération de la bannière du serveur: ${bannerError}`);
                         // On continue sans la bannière en base64
@@ -253,7 +269,7 @@ export const create = async (
                 // On continue et on retourne quand même les données
             }
         }
-        
+
         // Retourne les données même si certaines parties ont échoué
         resolve(backupData);
     });
@@ -278,14 +294,14 @@ export const load = async (
         } else {
             disableDevMode();
         }
-        
+
         // Activer le mode selfbot si l'option est définie
         if (options.selfBot) {
             const { enableSelfbotMode } = require('./util');
             enableSelfbotMode();
             info('Mode selfbot activé');
         }
-        
+
         if (!guild) {
             return reject('Invalid guild');
         }
@@ -361,7 +377,7 @@ export const setStorageFolder = (path: string) => {
 
 export default {
     create,
-    fetch,
+    fetch: fetchBackup,
     list,
     load,
     remove,

@@ -5,7 +5,7 @@ export interface CreateOptions {
     jsonBeautify?: boolean;
     doNotBackup?: string[];
     backupMembers?: boolean;
-    saveImages?: string;
+    saveImages?: boolean;
     selfBot?: boolean;
     devMode?: boolean; // Activer/désactiver les logs de débogage
 }

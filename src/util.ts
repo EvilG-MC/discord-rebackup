@@ -150,13 +150,13 @@ export function fetchChannelPermissions(channel: InstanceType<TextChannelType> |
     const permissions: ChannelPermissionsData[] = [];
     try {
         const typedChannel = channel as any;
-        
+
         // Vérifier si permissionOverwrites existe et a une propriété cache
         if (!typedChannel.permissionOverwrites || !typedChannel.permissionOverwrites.cache) {
             console.error(`Le canal ${typedChannel.name || typedChannel.id || 'inconnu'} n'a pas de permissionOverwrites valides`);
             return permissions;
         }
-        
+
         typedChannel.permissionOverwrites.cache
             .filter((p: any) => p.type === OverwriteType.Role || p.type === 'role')
             .forEach((perm: any) => {
@@ -165,13 +165,13 @@ export function fetchChannelPermissions(channel: InstanceType<TextChannelType> |
                     if (!typedChannel.guild || !typedChannel.guild.roles || !typedChannel.guild.roles.cache) {
                         return; // Skip if guild or roles cache is not available
                     }
-                    
+
                     const role = typedChannel.guild.roles.cache.get(perm.id);
                     if (role) {
                         // Vérifier si perm.allow et perm.deny existent et ont une propriété bitfield
                         const allowBitfield = perm.allow && perm.allow.bitfield ? perm.allow.bitfield.toString() : '0';
                         const denyBitfield = perm.deny && perm.deny.bitfield ? perm.deny.bitfield.toString() : '0';
-                        
+
                         permissions.push({
                             roleName: role.name,
                             allow: allowBitfield,
@@ -247,8 +247,8 @@ export async function fetchChannelMessages(channel: InstanceType<TextChannelType
             const files = await Promise.all(msg.attachments.map(async (a: any) => {
                 let attach = a.url
                 if (a.url && ['png', 'jpg', 'jpeg', 'jpe', 'jif', 'jfif', 'jfi'].includes(a.url)) {
-                    if (options.saveImages && options.saveImages === 'base64') {
-                        attach = (await (fetch(a.url).then((res) => (res as any).buffer()))).toString('base64')
+                    if (options.saveImages) {
+                        attach = Buffer.from((await (fetch(a.url).then((res) => (res).arrayBuffer())))).toString("base64")
                     }
                 }
                 return {
@@ -379,7 +379,7 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
                 // Vérifier si le canal est un thread en appelant la fonction isThread si elle existe
                 const isThreadChannel = typeof (channel as any).isThread === 'function' ? (channel as any).isThread() : (channel as any).isThread;
                 debug(`Vérification si ${channel.name} est un thread: ${isThreadChannel}`);
-                
+
                 if (!webhook && !isThreadChannel && (channel as any).fetchWebhooks) {
                     try {
                         debug(`Tentative de récupération des webhooks pour le canal ${channel.name}`);
@@ -429,7 +429,7 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
                 messages = messages
                     .filter((m) => m.content.length > 0 || m.embeds.length > 0 || m.files.length > 0)
                     .reverse();
-                
+
                 // Si maxMessagesPerChannel est défini et n'est pas -1 (valeur spéciale pour "tous les messages")
                 if (options.maxMessagesPerChannel && options.maxMessagesPerChannel !== -1) {
                     debug(`Limitation à ${options.maxMessagesPerChannel} messages pour le canal ${channel.name}`);
@@ -447,17 +447,17 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
                             embeds: msg.embeds,
                             allowedMentions: options.allowedMentions
                         };
-                        
+
                         // Ajouter les pièces jointes si présentes
                         if (msg.files && msg.files.length > 0) {
                             try {
                                 // Gestion des pièces jointes compatible avec les deux versions
                                 const buffer = await fetch(msg.files[0].attachment)
-                                    .then((res) => (res as any).buffer())
+                                    .then((res) => (res).arrayBuffer())
                                     .catch((error): null => {
                                         return null;
                                     });
-                                
+
                                 if (buffer) {
                                     // Créer l'attachment en fonction de la version disponible
                                     if (isSelfbotMode && discordjsSelfbot) {
@@ -472,7 +472,7 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
                             } catch (error) {
                             }
                         }
-                        
+
                         // Envoyer le message via le webhook
                         debug(`Tentative d'envoi d'un message via webhook dans le canal ${channel.name}`);
                         debug(`Options du message:`, JSON.stringify(messageOptions, null, 2));
@@ -612,12 +612,12 @@ export async function loadChannel(channelData: TextChannelData | VoiceChannelDat
                 /* Load messages */
                 let webhook: InstanceType<WebhookType> | void;
                 debug(`Canal de type texte détecté: ${channel.name}, Type: ${channelData.type}`);
-                
+
                 // Vérifier si le canal a des messages
                 if ((channelData as TextChannelData).messages && (channelData as TextChannelData).messages.length > 0) {
                     debug(`Le canal ${channel.name} a ${(channelData as TextChannelData).messages.length} messages à charger`);
                     debug(`Premier message: ${JSON.stringify((channelData as TextChannelData).messages[0], null, 2)}`);
-                    
+
                     try {
                         webhook = await loadMessages(channel as InstanceType<TextChannelType>, (channelData as TextChannelData).messages);
                         debug(`Messages chargés avec succès dans le canal ${channel.name}, Webhook créé: ${!!webhook}`);
